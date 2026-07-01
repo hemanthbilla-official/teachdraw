@@ -101,7 +101,7 @@ This is the most important takeaway.
 
 #### Frame-based (explicit)
 
-```
+```text
 # Board Title
 
 ## Frame 1: Getting Started
@@ -110,9 +110,7 @@ This is the most important takeaway.
 What is this concept?
 
 ### Code
-```python
 print("hello")
-```
 ```
 
 #### Flow Diagrams
