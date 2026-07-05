@@ -8,13 +8,14 @@ type Props = {
 
 export function ParserModeBadge({ document, analysis }: Props) {
   const visibleWarnings = analysis.warnings.slice(0, 2)
+  const imageSummary = analysis.imageBlockCount > 0 ? ` · ${analysis.imageBlockCount} images` : ''
 
   return (
     <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span>Detected: {document.mode === 'frame-based' ? 'Frame-based tldraw content' : 'Simple lesson content'}</span>
         <span className="font-medium text-slate-900">
-          {analysis.frameCount} frames · {analysis.blockCount} blocks · {analysis.codeBlockCount} code
+          {analysis.frameCount} frames · {analysis.blockCount} blocks · {analysis.codeBlockCount} code{imageSummary}
         </span>
       </div>
 

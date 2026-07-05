@@ -1,4 +1,4 @@
-import type { TeachDrawBlock, TeachDrawCodeBlock } from '@/types/teachdraw'
+import type { TeachDrawBlock, TeachDrawCodeBlock, TeachDrawImageBlock } from '@/types/teachdraw'
 
 export function normalizeMarkdown(markdown: string): string {
   return fixCommonMojibake(markdown).replace(/\r\n?/g, '\n')
@@ -135,6 +135,7 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
   }
 
   if (h.includes('code') || h.includes('first code') || h.includes('complete code')) return 'code'
+  if (h.includes('image') || h.includes('screenshot') || h.includes('photo') || h.includes('picture')) return 'image'
 
   if (h === 'request' || h.includes('request body') || h.includes('api request')) return 'request'
   if (h === 'response' || h.includes('api response')) return 'response'
@@ -211,6 +212,22 @@ export function extractCodeBlocks(raw: string): { textWithoutCode: string; codeB
   }
 
   return { textWithoutCode: textLines.join('\n'), codeBlocks }
+}
+
+export function extractImageBlocks(raw: string): { textWithoutImages: string; imageBlocks: TeachDrawImageBlock[] } {
+  const imageBlocks: TeachDrawImageBlock[] = []
+  const textWithoutImages = raw.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g, (_match, alt: string, url: string) => {
+    imageBlocks.push({
+      alt: stripMarkdownMarkers(alt || '').trim(),
+      url: url.trim(),
+    })
+    return ''
+  })
+
+  return {
+    textWithoutImages: textWithoutImages.replace(/\n{3,}/g, '\n\n'),
+    imageBlocks,
+  }
 }
 
 function takeTrailingCodeLabel(textLines: string[]): string | undefined {
@@ -313,8 +330,9 @@ export function shouldTreatAsUnbulletedList(heading: string, lines: string[]): b
 
 export function parseBlock(id: string, heading: string, rawContent: string, kindOverride?: TeachDrawBlock['kind']): TeachDrawBlock {
   const { textWithoutCode, codeBlocks } = extractCodeBlocks(rawContent)
-  const bullets = parseBullets(textWithoutCode)
-  const numberedItems = parseNumberedItems(textWithoutCode)
+  const { textWithoutImages, imageBlocks } = extractImageBlocks(textWithoutCode)
+  const bullets = parseBullets(textWithoutImages)
+  const numberedItems = parseNumberedItems(textWithoutImages)
   const kind = kindOverride ?? detectBlockKind(heading)
 
   if (kind === 'compare') {
@@ -322,15 +340,16 @@ export function parseBlock(id: string, heading: string, rawContent: string, kind
       id,
       heading: stripMarkdownMarkers(heading),
       kind,
-      text: normalizeComparisonText(textWithoutCode),
+      text: normalizeComparisonText(textWithoutImages),
       bullets: [],
       numberedItems: [],
       codeBlocks,
+      imageBlocks,
       flowSteps: [],
     }
   }
 
-  const meaningfulLines = getMeaningfulLines(textWithoutCode)
+  const meaningfulLines = getMeaningfulLines(textWithoutImages)
   const shouldUseUnbulleted = kind !== 'flow' && bullets.length === 0 && shouldTreatAsUnbulletedList(heading, meaningfulLines)
   const finalBullets = shouldUseUnbulleted ? meaningfulLines : bullets
   const text = stripMarkdownMarkers(
@@ -345,7 +364,8 @@ export function parseBlock(id: string, heading: string, rawContent: string, kind
     bullets: finalBullets,
     numberedItems,
     codeBlocks,
-    flowSteps: kind === 'flow' || kind === 'decision' ? parseFlowSteps(textWithoutCode, finalBullets) : [],
+    imageBlocks,
+    flowSteps: kind === 'flow' || kind === 'decision' ? parseFlowSteps(textWithoutImages, finalBullets) : [],
   }
 }
 

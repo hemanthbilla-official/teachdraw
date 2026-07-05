@@ -2,7 +2,7 @@ import type { TeachDrawBlock, TeachDrawDocument, TeachDrawFrame } from '@/types/
 import { detectBlockKind, normalizeMarkdown, parseBlock, slugId, stripMarkdownMarkers } from './markdownUtils'
 
 const sectionPrefixRegex =
-  /^(Concept|Flow|Decision|Code|Command|Request|Response|Task|Practice|Assignment|Warning|Mistake|Correct|Compare|Recap|Example|Definition|Meaning|Explanation|Walkthrough|What to notice|Important|Key Point|Memory Line)\s*:\s*(.+)$/i
+  /^(Concept|Flow|Decision|Code|Command|Request|Response|Image|Screenshot|Photo|Task|Practice|Assignment|Warning|Mistake|Correct|Compare|Recap|Example|Definition|Meaning|Explanation|Walkthrough|What to notice|Important|Key Point|Memory Line)\s*:\s*(.+)$/i
 
 export function parseSectionBasedMarkdown(markdown: string): TeachDrawDocument {
   const normalized = normalizeMarkdown(markdown)

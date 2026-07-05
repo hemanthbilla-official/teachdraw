@@ -1,9 +1,11 @@
 import type { TeachDrawBlock, TeachDrawDocument, TeachDrawFrame } from '@/types/teachdraw'
+import { getImageUrlIssue } from '@/lib/imageUrlRules'
 
 export type TeachDrawBoardAnalysis = {
   frameCount: number
   blockCount: number
   codeBlockCount: number
+  imageBlockCount: number
   flowBlockCount: number
   comparisonBlockCount: number
   warningCount: number
@@ -26,6 +28,7 @@ export function analyzeTeachDrawDocument(document: TeachDrawDocument, markdown: 
     frameCount: frames.length,
     blockCount: blocks.length,
     codeBlockCount: blocks.reduce((sum, block) => sum + block.codeBlocks.length, 0),
+    imageBlockCount: blocks.reduce((sum, block) => sum + block.imageBlocks.length, 0),
     flowBlockCount: blocks.filter((block) => block.kind === 'flow' || block.kind === 'decision').length,
     comparisonBlockCount: blocks.filter((block) => block.kind === 'compare').length,
     warningCount: warnings.length,
@@ -54,6 +57,7 @@ function analyzeBlocks(frames: TeachDrawFrame[]): string[] {
   const blocks = frames.flatMap((frame) => frame.blocks)
   const hiddenScriptBlocks = blocks.filter((block) => trainerScriptHeadingRegex.test(block.heading.trim()))
   const emptyCodeBlocks = blocks.filter((block) => block.codeBlocks.some((codeBlock) => !codeBlock.content.trim()))
+  const imageUrlIssues = blocks.flatMap((block) => block.imageBlocks.map((imageBlock) => getImageUrlIssue(imageBlock.url)).filter(Boolean))
   const unclearComparison = frames.some((frame) => frame.blocks.some((block) => block.kind === 'compare' && !hasComparisonPattern(block)))
 
   if (hiddenScriptBlocks.length > 0) {
@@ -62,6 +66,22 @@ function analyzeBlocks(frames: TeachDrawFrame[]): string[] {
 
   if (emptyCodeBlocks.length > 0) {
     warnings.push('At least one code block is empty.')
+  }
+
+  if (imageUrlIssues.includes('invalid')) {
+    warnings.push('At least one image URL is not a valid http(s) link.')
+  }
+
+  if (imageUrlIssues.includes('search-or-page')) {
+    warnings.push('At least one image uses a search/page URL. Use the direct image URL instead.')
+  }
+
+  if (imageUrlIssues.includes('thumbnail-proxy')) {
+    warnings.push('At least one image uses a Google thumbnail/proxy URL. It may appear cropped or low resolution; use the original direct image URL.')
+  }
+
+  if (imageUrlIssues.includes('not-direct-looking')) {
+    warnings.push('At least one image URL does not look like a direct image file. Prefer URLs ending in .png, .jpg, .webp, .svg, or a known image CDN URL.')
   }
 
   if (unclearComparison) {

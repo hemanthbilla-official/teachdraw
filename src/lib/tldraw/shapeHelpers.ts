@@ -1,5 +1,7 @@
 import {
+  AssetRecordType,
   type Editor,
+  type TLAssetId,
   type TLDefaultColorStyle,
   type TLDefaultDashStyle,
   type TLDefaultFillStyle,
@@ -19,6 +21,7 @@ export type TeachDrawShapeMeta = {
 }
 
 export type ShapePartial = Parameters<Editor['createShapes']>[0][number]
+export type AssetPartial = Parameters<Editor['createAssets']>[0][number]
 
 type ShapeMetaInput = Partial<Omit<TeachDrawShapeMeta, 'teachDrawGenerated'>>
 
@@ -204,4 +207,78 @@ export function createArrow(args: {
     },
     meta: createGeneratedMeta(args.meta),
   }
+}
+
+export function createImageAsset(args: {
+  src: string
+  name: string
+  w: number
+  h: number
+  mimeType?: string | null
+  meta?: ShapeMetaInput
+}): { asset: AssetPartial; assetId: TLAssetId } {
+  const assetId = AssetRecordType.createId()
+  return {
+    assetId,
+    asset: {
+      id: assetId,
+      typeName: 'asset',
+      type: 'image',
+      props: {
+        w: args.w,
+        h: args.h,
+        name: args.name,
+        isAnimated: isAnimatedImageUrl(args.src),
+        mimeType: args.mimeType ?? inferImageMimeType(args.src),
+        src: args.src,
+      },
+      meta: createGeneratedMeta(args.meta),
+    },
+  }
+}
+
+export function createImageShape(args: {
+  x: number
+  y: number
+  w: number
+  h: number
+  assetId: TLAssetId
+  altText: string
+  parentId?: TLShape['id']
+  meta?: ShapeMetaInput
+}): ShapePartial {
+  return {
+    id: createShapeId(),
+    type: 'image',
+    parentId: args.parentId,
+    x: args.x,
+    y: args.y,
+    props: {
+      w: args.w,
+      h: args.h,
+      playing: true,
+      url: '',
+      assetId: args.assetId,
+      crop: null,
+      flipX: false,
+      flipY: false,
+      altText: args.altText,
+    },
+    meta: createGeneratedMeta(args.meta),
+  }
+}
+
+function inferImageMimeType(url: string): string | null {
+  const clean = url.split(/[?#]/)[0]?.toLowerCase() ?? ''
+  if (clean.endsWith('.png')) return 'image/png'
+  if (clean.endsWith('.jpg') || clean.endsWith('.jpeg')) return 'image/jpeg'
+  if (clean.endsWith('.gif')) return 'image/gif'
+  if (clean.endsWith('.webp')) return 'image/webp'
+  if (clean.endsWith('.svg')) return 'image/svg+xml'
+  if (clean.endsWith('.avif')) return 'image/avif'
+  return null
+}
+
+function isAnimatedImageUrl(url: string): boolean {
+  return url.split(/[?#]/)[0]?.toLowerCase().endsWith('.gif') ?? false
 }

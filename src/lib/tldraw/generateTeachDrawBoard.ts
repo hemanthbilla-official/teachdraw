@@ -1,9 +1,10 @@
 import type { Editor, TLShape } from 'tldraw'
 import type { TeachDrawDocument } from '@/types/teachdraw'
-import { createGeoCard, createFrameShape, type ShapePartial } from './shapeHelpers'
+import { createGeoCard, createFrameShape, type AssetPartial, type ShapePartial } from './shapeHelpers'
 import { BOARD_X, BOARD_Y, FRAME_START_GAP, defaultOptions } from './generator/constants'
 import { cleanBoardTitleText, cleanFrameTitle, stripMarkdownMarkers } from './generator/content'
 import { renderFrameContent } from './generator/frameRenderers'
+import { resolveDocumentImageInfo } from './generator/imageRenderer'
 import { getBoardLayout, setFrameHeight } from './generator/layout'
 import { estimateTextCardHeight } from './generator/measurements'
 import { pickFrameColor } from './generator/palette'
@@ -11,15 +12,17 @@ import { renderWhiteboardFrameContent } from './generator/whiteboardRenderer'
 import type { GenerateTeachDrawOptions } from './generator/types'
 export type { GenerateTeachDrawOptions, LayoutMode, SpacingPreset } from './generator/types'
 
-export function generateTeachDrawBoard(
+export async function generateTeachDrawBoard(
   editor: Editor,
   document: TeachDrawDocument,
   options?: Partial<GenerateTeachDrawOptions>
-): void {
+): Promise<void> {
   const opts = { ...defaultOptions, ...options }
   if (opts.clearBeforeGenerate) clearGeneratedShapes(editor)
 
   const layout = getBoardLayout(opts.layoutMode, opts.spacing)
+  const imageInfo = await resolveDocumentImageInfo(document)
+  const assets: AssetPartial[] = []
   const shapes: ShapePartial[] = []
   let cursorY = BOARD_Y
 
@@ -41,8 +44,8 @@ export function generateTeachDrawBoard(
     const parentId = frameShape.id as TLShape['id']
     const contentHeight =
       opts.layoutMode === 'whiteboard-map'
-        ? renderWhiteboardFrameContent(frameShapes, frame, parentId, layout, opts, index)
-        : renderFrameContent(frameShapes, frame, parentId, layout, opts, index)
+        ? renderWhiteboardFrameContent(frameShapes, assets, frame, parentId, layout, opts, index, imageInfo)
+        : renderFrameContent(frameShapes, assets, frame, parentId, layout, opts, index, imageInfo)
     const frameHeight = Math.max(layout.minFrameHeight, Math.ceil(contentHeight + layout.paddingY))
 
     setFrameHeight(frameShape, frameHeight)
@@ -50,6 +53,7 @@ export function generateTeachDrawBoard(
     cursorY += frameHeight + layout.frameGapY
   })
 
+  if (assets.length > 0) editor.createAssets(assets)
   editor.createShapes(shapes)
   if (shapes.length > 0) {
     editor.setCamera({ x: -60, y: -40, z: layout.cameraZoom }, { animation: { duration: 260 } })
@@ -64,6 +68,15 @@ export function clearGeneratedShapes(editor: Editor): void {
 
   if (generatedShapeIds.length > 0) {
     editor.deleteShapes(generatedShapeIds)
+  }
+
+  const generatedAssetIds = editor
+    .getAssets()
+    .filter((asset) => asset.meta?.teachDrawGenerated === true)
+    .map((asset) => asset.id)
+
+  if (generatedAssetIds.length > 0) {
+    editor.deleteAssets(generatedAssetIds)
   }
 }
 

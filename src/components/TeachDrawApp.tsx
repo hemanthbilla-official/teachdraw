@@ -46,9 +46,10 @@ export function TeachDrawApp() {
         setStatus('No content found.')
         return
       }
-      generateTeachDrawBoard(editor, parsed, options)
+      await generateTeachDrawBoard(editor, parsed, options)
       const parsedAnalysis = analyzeTeachDrawDocument(parsed, markdown)
-      setStatus(`Board generated: ${parsedAnalysis.frameCount} frames, ${parsedAnalysis.codeBlockCount} code blocks.`)
+      const imageSummary = parsedAnalysis.imageBlockCount > 0 ? `, ${parsedAnalysis.imageBlockCount} images` : ''
+      setStatus(`Board generated: ${parsedAnalysis.frameCount} frames, ${parsedAnalysis.codeBlockCount} code blocks${imageSummary}.`)
     } catch (error) {
       console.error(error)
       setStatus('Could not parse Markdown.')

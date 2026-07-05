@@ -1,6 +1,6 @@
 import type { TLShape } from 'tldraw'
 import type { TeachDrawBlock, TeachDrawFrame } from '@/types/teachdraw'
-import { createArrow, createGeoCard, createTextShape, type ShapePartial } from '../shapeHelpers'
+import { createArrow, createGeoCard, createTextShape, type AssetPartial, type ShapePartial } from '../shapeHelpers'
 import {
   getRenderableBlocks,
   isCalloutBlock,
@@ -15,6 +15,7 @@ import { mergeGroupedComparisonBlocks } from './comparisonGrouping'
 import { renderComparisonBlock } from './comparisonRenderer'
 import { buildPlainBody, buildTextCardText, getVisibleFrameTitle, hasNonCodeText } from './content'
 import { renderFlowBlock } from './flowRenderer'
+import { isImageBlock, renderImageBlock, type ImageInfoMap } from './imageRenderer'
 import { renderMistakeFixPanel } from './mistakeFixRenderer'
 import { estimateWrappedLines } from './measurements'
 import { getCalloutColor, getCalloutLabel, getTextColor } from './palette'
@@ -36,11 +37,13 @@ type RenderedLane = {
 
 export function renderWhiteboardFrameContent(
   shapes: ShapePartial[],
+  assets: AssetPartial[],
   frame: TeachDrawFrame,
   parentId: TLShape['id'],
   layout: BoardLayout,
   options: GenerateTeachDrawOptions,
-  frameIndex: number
+  frameIndex: number,
+  imageInfo: ImageInfoMap
 ): number {
   const meta = { frameNumber: frame.frameNumber, frameTitle: frame.frameTitle }
   const title = getVisibleFrameTitle(frame)
@@ -51,7 +54,7 @@ export function renderWhiteboardFrameContent(
 
   if (blocks.length === 0) return contentY
 
-  const renderedHeight = renderWhiteboardMap(shapes, blocks, parentId, contentX, contentY, layout.contentWidth, meta, options, layout)
+  const renderedHeight = renderWhiteboardMap(shapes, assets, blocks, parentId, contentX, contentY, layout.contentWidth, meta, options, layout, imageInfo)
   return contentY + renderedHeight
 }
 
@@ -98,6 +101,7 @@ function renderWhiteboardHeader(
 
 function renderWhiteboardMap(
   shapes: ShapePartial[],
+  assets: AssetPartial[],
   blocks: TeachDrawBlock[],
   parentId: TLShape['id'],
   x: number,
@@ -105,22 +109,23 @@ function renderWhiteboardMap(
   w: number,
   frameMeta: GeneratedMeta,
   options: GenerateTeachDrawOptions,
-  layout: BoardLayout
+  layout: BoardLayout,
+  imageInfo: ImageInfoMap
 ): number {
   const lanes = splitWhiteboardLanes(blocks)
 
   if (lanes.visual.length === 0) {
-    return renderWhiteboardConceptGrid(shapes, blocks, parentId, x, y, w, frameMeta, options, layout)
+    return renderWhiteboardConceptGrid(shapes, assets, blocks, parentId, x, y, w, frameMeta, options, layout, imageInfo)
   }
 
   const laneGap = layout.columnGap
   const laneLayout = getWhiteboardLaneLayout(x, w, laneGap, lanes.support.length > 0, lanes.callout.length > 0)
   const support = lanes.support.length
-    ? renderWhiteboardLane(shapes, lanes.support, parentId, laneLayout.supportX, y, laneLayout.supportW, frameMeta, options, layout, 'support')
+    ? renderWhiteboardLane(shapes, assets, lanes.support, parentId, laneLayout.supportX, y, laneLayout.supportW, frameMeta, options, layout, imageInfo, 'support')
     : emptyLane()
-  const visual = renderWhiteboardVisualLane(shapes, lanes.visual, parentId, laneLayout.visualX, y, laneLayout.visualW, frameMeta, options, layout)
+  const visual = renderWhiteboardVisualLane(shapes, assets, lanes.visual, parentId, laneLayout.visualX, y, laneLayout.visualW, frameMeta, options, layout, imageInfo)
   const callout = lanes.callout.length
-    ? renderWhiteboardLane(shapes, lanes.callout, parentId, laneLayout.calloutX, y, laneLayout.calloutW, frameMeta, options, layout, 'callout')
+    ? renderWhiteboardLane(shapes, assets, lanes.callout, parentId, laneLayout.calloutX, y, laneLayout.calloutW, frameMeta, options, layout, imageInfo, 'callout')
     : emptyLane()
 
   connectWhiteboardLanes(shapes, parentId, support.items[0], visual.items[0], frameMeta)
@@ -154,7 +159,7 @@ function splitWhiteboardLanes(blocks: TeachDrawBlock[]): Record<WhiteboardLane, 
 }
 
 function isPrimaryWhiteboardBlock(block: TeachDrawBlock): boolean {
-  return isCodeVisualBlock(block) || isComparisonBlock(block) || isFlowLikeBlock(block) || isMistakeBlock(block) || isCorrectBlock(block)
+  return isImageBlock(block) || isCodeVisualBlock(block) || isComparisonBlock(block) || isFlowLikeBlock(block) || isMistakeBlock(block) || isCorrectBlock(block)
 }
 
 function getWhiteboardLaneLayout(
@@ -203,6 +208,7 @@ function getWhiteboardLaneLayout(
 
 function renderWhiteboardConceptGrid(
   shapes: ShapePartial[],
+  assets: AssetPartial[],
   blocks: TeachDrawBlock[],
   parentId: TLShape['id'],
   x: number,
@@ -210,7 +216,8 @@ function renderWhiteboardConceptGrid(
   w: number,
   frameMeta: GeneratedMeta,
   options: GenerateTeachDrawOptions,
-  layout: BoardLayout
+  layout: BoardLayout,
+  imageInfo: ImageInfoMap
 ): number {
   const columnCount = blocks.length <= 1 ? 1 : blocks.length === 2 ? 2 : 3
   const gap = layout.columnGap
@@ -221,7 +228,7 @@ function renderWhiteboardConceptGrid(
     const column = index % columnCount
     const blockX = x + column * (colW + gap)
     const blockY = cursors[column]
-    const height = renderWhiteboardBlock(shapes, block, parentId, blockX, blockY, colW, frameMeta, options, layout, 'support')
+    const height = renderWhiteboardBlock(shapes, assets, block, parentId, blockX, blockY, colW, frameMeta, options, layout, imageInfo, 'support')
     if (height > 0) cursors[column] += height + layout.blockGap
   })
 
@@ -230,6 +237,7 @@ function renderWhiteboardConceptGrid(
 
 function renderWhiteboardLane(
   shapes: ShapePartial[],
+  assets: AssetPartial[],
   blocks: TeachDrawBlock[],
   parentId: TLShape['id'],
   x: number,
@@ -238,6 +246,7 @@ function renderWhiteboardLane(
   frameMeta: GeneratedMeta,
   options: GenerateTeachDrawOptions,
   layout: BoardLayout,
+  imageInfo: ImageInfoMap,
   lane: WhiteboardLane
 ): RenderedLane {
   const items: RenderedWhiteboardItem[] = []
@@ -247,7 +256,7 @@ function renderWhiteboardLane(
     const offset = lane === 'visual' ? 0 : (index % 2) * Math.min(18, layout.smallGap)
     const blockX = x + offset
     const blockW = Math.max(220, w - offset)
-    const height = renderWhiteboardBlock(shapes, block, parentId, blockX, cursorY, blockW, frameMeta, options, layout, lane)
+    const height = renderWhiteboardBlock(shapes, assets, block, parentId, blockX, cursorY, blockW, frameMeta, options, layout, imageInfo, lane)
     if (height > 0) {
       items.push({ x: blockX, y: cursorY, w: blockW, h: height })
       cursorY += height + layout.blockGap
@@ -259,6 +268,7 @@ function renderWhiteboardLane(
 
 function renderWhiteboardVisualLane(
   shapes: ShapePartial[],
+  assets: AssetPartial[],
   blocks: TeachDrawBlock[],
   parentId: TLShape['id'],
   x: number,
@@ -266,7 +276,8 @@ function renderWhiteboardVisualLane(
   w: number,
   frameMeta: GeneratedMeta,
   options: GenerateTeachDrawOptions,
-  layout: BoardLayout
+  layout: BoardLayout,
+  imageInfo: ImageInfoMap
 ): RenderedLane {
   const items: RenderedWhiteboardItem[] = []
   let cursorY = y
@@ -298,7 +309,7 @@ function renderWhiteboardVisualLane(
       continue
     }
 
-    const height = renderWhiteboardBlock(shapes, block, parentId, x, cursorY, w, frameMeta, options, layout, 'visual')
+    const height = renderWhiteboardBlock(shapes, assets, block, parentId, x, cursorY, w, frameMeta, options, layout, imageInfo, 'visual')
     if (height > 0) {
       items.push({ x, y: cursorY, w, h: height })
       cursorY += height + layout.blockGap
@@ -310,6 +321,7 @@ function renderWhiteboardVisualLane(
 
 function renderWhiteboardBlock(
   shapes: ShapePartial[],
+  assets: AssetPartial[],
   block: TeachDrawBlock,
   parentId: TLShape['id'],
   x: number,
@@ -318,8 +330,13 @@ function renderWhiteboardBlock(
   frameMeta: GeneratedMeta,
   options: GenerateTeachDrawOptions,
   layout: BoardLayout,
+  imageInfo: ImageInfoMap,
   lane: WhiteboardLane
 ): number {
+  if (isImageBlock(block)) {
+    return renderImageBlock(shapes, assets, block, parentId, x, y, w, frameMeta, imageInfo)
+  }
+
   if (isComparisonBlock(block)) {
     return renderComparisonBlock(shapes, block, parentId, x, y, w, frameMeta)
   }

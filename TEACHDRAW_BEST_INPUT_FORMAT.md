@@ -15,6 +15,9 @@ Do not ask the LLM to include oral questions, expected student answers, trainer 
 - Use `## Heading` for every block inside a frame.
 - Prefer 2-4 useful teaching lines for explanations.
 - Keep code in fenced code blocks.
+- Use normal Markdown image syntax for direct remote image URLs: `![Alt text](https://example.com/image.png)`.
+- Do not use Google search URLs, image search pages, article pages, or documentation pages as image links.
+- Do not use Google thumbnail/proxy URLs such as `https://encrypted-tbn0.gstatic.com/images?...`; they may appear cropped or low resolution.
 - Keep real symbols exactly as written: slashes, quotes, braces, decorators, `.venv`, URLs, `localhost`, and ports.
 - Use `**bold**` only for visual emphasis in text, not inside code.
 - Add labels before multiple code blocks, such as `Request:` and `Response:`.
@@ -132,6 +135,59 @@ Response:
 }
 ```
 ````
+
+## Image Frame
+
+Use this when a screenshot, diagram export, or visual reference helps the lesson. Use remote `http` or `https` direct image URLs only.
+
+The URL should point to the actual image resource, usually ending in `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, or `.svg`, or coming from a known image CDN.
+
+Good:
+
+```md
+![Flexbox visual reference](https://miro.medium.com/v2/1*5WxLCnuAebfk11AyktuOew.png)
+![Flexbox axes visual](https://www.samanthaming.com/flexbox30/4-flexbox-axes/flexbox-axes.jpg)
+![Background size cover contain](https://www.scaler.com/topics/images/using-keyword-values.webp)
+```
+
+Bad:
+
+```md
+![Flexbox diagram](https://www.google.com/search?q=flexbox+diagram)
+![Flexbox docs page](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout)
+![Google thumbnail](https://encrypted-tbn0.gstatic.com/images?q=tbn:...)
+```
+
+```md
+# Frame 4: FastAPI Docs Screen
+<!-- layout: horizontal -->
+
+## Meaning
+
+FastAPI `/docs` gives a browser interface for testing API routes.
+
+It is useful for POST APIs because it provides a request body editor.
+
+## Image
+
+![FastAPI docs POST request body screen](https://example.com/fastapi-docs-post.png)
+
+## Key Point
+
+Use images only when they clarify the screen or visual state.
+```
+
+Useful image moments for programming notes:
+
+- Flexbox main axis and cross axis
+- `flex-direction: row` vs `column`
+- `justify-content` and `align-items`
+- `background-size: cover` vs `contain`
+- relative parent with absolute child positioning
+- UI screenshots where students need to recognize the screen
+- architecture diagrams exported as image files
+
+Do not include Mermaid diagrams for now. If a diagram is needed, render it elsewhere and include it as an image URL.
 
 ## Flow Frame
 
@@ -480,6 +536,9 @@ Use # Frame X: Title for sections and ## Heading for blocks.
 Use 2-4 practical teaching lines per explanation.
 Use fenced code blocks and preserve code exactly.
 Use labels before multiple code blocks, such as Request:, Body:, and Response:.
+Use Markdown image syntax only when a direct remote image URL is useful.
+Use actual image URLs, not Google search URLs, image search pages, article pages, or documentation pages.
+Do not include Mermaid diagrams; use an image URL instead if a rendered diagram is needed.
 For comparisons, use standalone vs lines.
 
 Topic:

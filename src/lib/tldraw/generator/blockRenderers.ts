@@ -1,16 +1,18 @@
 import type { TLShape } from 'tldraw'
 import type { TeachDrawBlock } from '@/types/teachdraw'
-import type { ShapePartial } from '../shapeHelpers'
+import type { AssetPartial, ShapePartial } from '../shapeHelpers'
 import { isCalloutBlock, isCodeVisualBlock, isComparisonBlock, isFlowLikeBlock } from './classification'
 import { renderCodeBlockStack } from './codeCardRenderers'
 import { renderComparisonBlock } from './comparisonRenderer'
 import { hasNonCodeText } from './content'
 import { renderFlowBlock } from './flowRenderer'
+import { isImageBlock, renderImageBlock, type ImageInfoMap } from './imageRenderer'
 import { renderCalloutCard, renderTextCard } from './textCardRenderers'
 import type { BoardLayout, GeneratedMeta, GenerateTeachDrawOptions } from './types'
 
 export function renderAnyBlock(
   shapes: ShapePartial[],
+  assets: AssetPartial[],
   block: TeachDrawBlock,
   parentId: TLShape['id'],
   x: number,
@@ -18,8 +20,13 @@ export function renderAnyBlock(
   w: number,
   frameMeta: GeneratedMeta,
   options: GenerateTeachDrawOptions,
-  layout: BoardLayout
+  layout: BoardLayout,
+  imageInfo: ImageInfoMap
 ): number {
+  if (isImageBlock(block)) {
+    return renderImageBlock(shapes, assets, block, parentId, x, y, w, frameMeta, imageInfo)
+  }
+
   if (isComparisonBlock(block)) {
     return renderComparisonBlock(shapes, block, parentId, x, y, w, frameMeta)
   }

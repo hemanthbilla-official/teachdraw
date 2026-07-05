@@ -49,12 +49,14 @@ export type TeachDrawBlock = {
     | 'task'
     | 'practice'
     | 'compare'
+    | 'image'
     | 'recap'
     | 'normal'
   text: string
   bullets: string[]
   numberedItems: string[]
   codeBlocks: TeachDrawCodeBlock[]
+  imageBlocks: TeachDrawImageBlock[]
   flowSteps: string[]
 }
 
@@ -62,4 +64,9 @@ export type TeachDrawCodeBlock = {
   language?: string
   label?: string
   content: string
+}
+
+export type TeachDrawImageBlock = {
+  alt: string
+  url: string
 }

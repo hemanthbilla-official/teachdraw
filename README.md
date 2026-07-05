@@ -109,6 +109,7 @@ TeachDraw recognizes headings such as:
 - Command
 - Request
 - Response
+- Image
 - Flow
 - Decision
 - Compare
@@ -123,6 +124,40 @@ TeachDraw recognizes headings such as:
 - Recap
 
 The parser preserves fenced code content, indentation, slashes, quotes, braces, decorators, URLs, `.venv`, localhost URLs, ports, terminal commands, JSON, JSX, CSS, HTML, JavaScript, and Python. It strips only visual Markdown markers such as `**bold**` from normal note text.
+
+## Images
+
+TeachDraw supports normal Markdown image syntax with remote `http` or `https` URLs:
+
+```md
+## Image
+
+![FastAPI docs screenshot](https://example.com/fastapi-docs.png)
+```
+
+Use direct image URLs only. A direct image URL points to the actual image resource, usually ending in `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.svg`, or coming from a known image CDN.
+
+Good:
+
+```md
+![Flexbox visual reference](https://miro.medium.com/v2/1*5WxLCnuAebfk11AyktuOew.png)
+![Flexbox axes visual](https://www.samanthaming.com/flexbox30/4-flexbox-axes/flexbox-axes.jpg)
+![Background size cover contain](https://www.scaler.com/topics/images/using-keyword-values.webp)
+```
+
+Avoid search result links and normal article/page links:
+
+```md
+![Bad image link](https://www.google.com/search?q=flexbox+diagram)
+![Bad image link](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout)
+![Bad thumbnail link](https://encrypted-tbn0.gstatic.com/images?q=tbn:...)
+```
+
+Use image frames only when a visual reference helps the lesson: Flexbox main/cross axes, `row` vs `column`, `justify-content`, `align-items`, `background-size: cover` vs `contain`, relative/absolute positioning, browser screenshots, UI states, or architecture diagrams exported as images.
+
+Images render as native tldraw image shapes. The app references the remote URL directly; it does not download images to disk or upload them anywhere. TeachDraw centers images inside a light reference frame and caps very wide diagrams so they stay inspectable on screen. If an image URL is malformed, looks like a search/page URL, times out, or cannot load, TeachDraw renders a fallback card with the alt text and URL instead of failing the whole board.
+
+Mermaid diagrams are not rendered yet. Keep Mermaid content as normal code for now, or convert it to an image URL before pasting it into TeachDraw.
 
 ## Stability Guarantees
 
@@ -143,9 +178,10 @@ The parser badge shows:
 - frame count
 - block count
 - code block count
+- image count, when images are present
 - warnings for common input issues
 
-Warnings are local-only and non-blocking. They help catch issues such as unclosed code fences, empty frames, empty code blocks, unclear comparison blocks, or trainer-script headings that will be skipped.
+Warnings are local-only and non-blocking. They help catch issues such as unclosed code fences, empty frames, empty code blocks, malformed image URLs, search/page image links, Google thumbnail/proxy image links, unclear comparison blocks, or trainer-script headings that will be skipped.
 
 ## Development
 
@@ -179,6 +215,7 @@ src/
     ParserModeBadge.tsx
     TldrawCanvasPanel.tsx
   lib/
+    imageUrlRules.ts
     markdown/
       analyzeTeachDrawDocument.ts
       parseTeachDrawMarkdown.ts
@@ -199,6 +236,7 @@ src/
         flowRenderer.ts
         frameRenderers.ts
         headingRenderers.ts
+        imageRenderer.ts
         layout.ts
         measurements.ts
         mistakeFixRenderer.ts

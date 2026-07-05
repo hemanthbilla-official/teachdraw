@@ -58,6 +58,7 @@ export function buildGroupedComparisonBlock(compareBlock: TeachDrawBlock, candid
       bullets: [],
       numberedItems: [],
       codeBlocks: [],
+      imageBlocks: [],
       flowSteps: [],
     },
     usedBlocks,
