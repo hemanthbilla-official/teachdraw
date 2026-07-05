@@ -1,7 +1,7 @@
 import type { GenerateTeachDrawOptions, SpacingPreset } from './types'
 
 export const defaultOptions: GenerateTeachDrawOptions = {
-  layoutMode: 'horizontal-cards',
+  layoutMode: 'vertical-cards',
   flowOrientation: 'auto',
   spacing: 'comfortable',
   clearBeforeGenerate: true,
@@ -20,6 +20,7 @@ export const spacingConfig: Record<
   {
     horizontalWidth: number
     verticalWidth: number
+    whiteboardWidth: number
     frameGapY: number
     paddingX: number
     paddingY: number
@@ -31,22 +32,10 @@ export const spacingConfig: Record<
     cameraZoom: number
   }
 > = {
-  spacious: {
-    horizontalWidth: 1960,
-    verticalWidth: 1240,
-    frameGapY: 170,
-    paddingX: 66,
-    paddingY: 58,
-    titleGap: 126,
-    blockGap: 54,
-    smallGap: 34,
-    columnGap: 72,
-    minFrameHeight: 390,
-    cameraZoom: 0.42,
-  },
   comfortable: {
     horizontalWidth: 1780,
     verticalWidth: 1120,
+    whiteboardWidth: 1840,
     frameGapY: 140,
     paddingX: 58,
     paddingY: 52,
@@ -60,6 +49,7 @@ export const spacingConfig: Record<
   compact: {
     horizontalWidth: 1600,
     verticalWidth: 1020,
+    whiteboardWidth: 1660,
     frameGapY: 104,
     paddingX: 50,
     paddingY: 46,
@@ -73,6 +63,7 @@ export const spacingConfig: Record<
   'extra-compact': {
     horizontalWidth: 1440,
     verticalWidth: 920,
+    whiteboardWidth: 1500,
     frameGapY: 82,
     paddingX: 44,
     paddingY: 40,
@@ -86,6 +77,7 @@ export const spacingConfig: Record<
   'extreme-compact': {
     horizontalWidth: 1280,
     verticalWidth: 820,
+    whiteboardWidth: 1340,
     frameGapY: 64,
     paddingX: 38,
     paddingY: 36,
@@ -110,8 +102,13 @@ export const hiddenScreenNoteHeadings = new Set([
   'expected answer',
   'student expected answer',
   'students expected answer',
+  'student activity',
   'for students',
+  'wait for answers',
+  'wait for answer',
+  'oral question',
   'trainer note',
+  'trainer line',
   'trainer script',
 ])
 

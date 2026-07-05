@@ -10,6 +10,8 @@ export function getTextColor(block: TeachDrawBlock): DrawColor {
       return 'green'
     case 'example':
     case 'explanation':
+    case 'request':
+    case 'response':
       return 'blue'
     case 'mistake':
     case 'warning':
@@ -22,6 +24,10 @@ export function getTextColor(block: TeachDrawBlock): DrawColor {
       return 'green'
     case 'recap':
       return 'grey'
+    case 'important':
+    case 'keyPoint':
+    case 'memory':
+      return 'orange'
     default:
       return 'blue'
   }
@@ -45,6 +51,7 @@ export function getCalloutColor(block: TeachDrawBlock): DrawColor {
     case 'recap':
       return 'grey'
     case 'memory':
+    case 'important':
     case 'keyPoint':
       return 'orange'
     default:
@@ -55,6 +62,7 @@ export function getCalloutColor(block: TeachDrawBlock): DrawColor {
 export function getCalloutLabel(block: TeachDrawBlock): string {
   const heading = normalizeHeading(block.heading)
   if (block.kind === 'memory' || heading.includes('memory') || heading.includes('remember')) return 'Memory line'
+  if (block.kind === 'important') return 'Important'
   if (block.kind === 'warning') return heading.includes('mistake') ? 'Mistake' : 'Warning'
   if (block.kind === 'task' || block.kind === 'practice' || block.kind === 'assignment') return 'Practice'
   if (block.kind === 'recap') return 'Recap'

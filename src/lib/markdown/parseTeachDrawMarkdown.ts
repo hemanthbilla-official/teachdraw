@@ -3,7 +3,7 @@ import { normalizeMarkdown } from './markdownUtils'
 import { parseFrameBasedMarkdown } from './parseFrameBasedMarkdown'
 import { parseSectionBasedMarkdown } from './parseSectionBasedMarkdown'
 
-const frameHeadingRegex = /^#{1,2}\s*Frame\s+(\d+)\s*:\s*(.+)$/im
+const frameHeadingRegex = /^#{1,2}\s*Frame(?:\s+\d+\s*:|\s+)(.+)$/im
 
 export function parseTeachDrawMarkdown(markdown: string): TeachDrawDocument {
   const normalized = normalizeMarkdown(markdown)

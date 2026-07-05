@@ -1,7 +1,7 @@
 import type { TeachDrawDocument, TeachDrawFrame, TeachDrawLayoutHint } from '@/types/teachdraw'
 import { normalizeMarkdown, parseBlock, parseBoardTitle, slugId, stripMarkdownMarkers } from './markdownUtils'
 
-const frameHeadingRegex = /^#{1,2}\s*Frame\s+(\d+)\s*:\s*(.+)$/i
+const frameHeadingRegex = /^#{1,2}\s*Frame(?:\s+(\d+)\s*:|\s+)(.+)$/i
 
 export function parseFrameBasedMarkdown(markdown: string): TeachDrawDocument {
   const normalized = normalizeMarkdown(markdown)
@@ -25,7 +25,7 @@ export function parseFrameBasedMarkdown(markdown: string): TeachDrawDocument {
 
     frames.push({
       id: slugId('frame', frameIndex, match[2]),
-      frameNumber: Number(match[1]),
+      frameNumber: match[1] ? Number(match[1]) : frameIndex + 1,
       frameTitle: stripMarkdownMarkers(match[2]),
       layoutHint,
       blocks,

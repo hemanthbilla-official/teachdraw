@@ -1,7 +1,7 @@
 import type { TLShape } from 'tldraw'
 import type { TeachDrawBlock } from '@/types/teachdraw'
 import type { ShapePartial } from '../shapeHelpers'
-import { isCalloutBlock, isCodeVisualBlock, isComparisonBlock } from './classification'
+import { isCalloutBlock, isCodeVisualBlock, isComparisonBlock, isFlowLikeBlock } from './classification'
 import { renderCodeBlockStack } from './codeCardRenderers'
 import { renderComparisonBlock } from './comparisonRenderer'
 import { hasNonCodeText } from './content'
@@ -24,7 +24,7 @@ export function renderAnyBlock(
     return renderComparisonBlock(shapes, block, parentId, x, y, w, frameMeta)
   }
 
-  if (block.kind === 'flow') {
+  if (isFlowLikeBlock(block)) {
     return renderFlowBlock(shapes, block, parentId, x, y, w, frameMeta, options.flowOrientation)
   }
 

@@ -15,8 +15,9 @@ export function GenerationOptions({ options, onChange }: Props) {
           value={options.layoutMode}
           onChange={(event) => onChange({ ...options, layoutMode: event.target.value as GenerateTeachDrawOptions['layoutMode'] })}
         >
-          <option value="horizontal-cards">Horizontal Cards</option>
           <option value="vertical-cards">Vertical Cards</option>
+          <option value="horizontal-cards">Horizontal Cards</option>
+          <option value="whiteboard-map">Whiteboard Map</option>
         </select>
       </label>
 
@@ -27,7 +28,6 @@ export function GenerationOptions({ options, onChange }: Props) {
           value={options.spacing}
           onChange={(event) => onChange({ ...options, spacing: event.target.value as GenerateTeachDrawOptions['spacing'] })}
         >
-          <option value="spacious">Spacious</option>
           <option value="comfortable">Comfortable</option>
           <option value="compact">Compact</option>
           <option value="extra-compact">Extra Compact</option>

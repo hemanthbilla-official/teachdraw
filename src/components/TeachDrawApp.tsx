@@ -2,21 +2,16 @@
 
 import { useMemo, useState } from 'react'
 import { type Editor } from 'tldraw'
+import { analyzeTeachDrawDocument } from '@/lib/markdown/analyzeTeachDrawDocument'
 import { parseTeachDrawMarkdown } from '@/lib/markdown/parseTeachDrawMarkdown'
 import {
   clearGeneratedShapes,
   generateTeachDrawBoard,
   type GenerateTeachDrawOptions,
 } from '@/lib/tldraw/generateTeachDrawBoard'
+import { defaultOptions } from '@/lib/tldraw/generator/constants'
 import { MarkdownEditorPanel } from './MarkdownEditorPanel'
 import { TldrawCanvasPanel } from './TldrawCanvasPanel'
-
-const defaultOptions: GenerateTeachDrawOptions = {
-  layoutMode: 'horizontal-cards',
-  flowOrientation: 'auto',
-  spacing: 'comfortable',
-  clearBeforeGenerate: true,
-}
 
 export function TeachDrawApp() {
   const [markdown, setMarkdown] = useState('')
@@ -26,6 +21,7 @@ export function TeachDrawApp() {
   const [isGenerating, setIsGenerating] = useState(false)
 
   const document = useMemo(() => parseTeachDrawMarkdown(markdown), [markdown])
+  const analysis = useMemo(() => analyzeTeachDrawDocument(document, markdown), [document, markdown])
 
   async function handleGenerate() {
     if (isGenerating) return
@@ -51,7 +47,8 @@ export function TeachDrawApp() {
         return
       }
       generateTeachDrawBoard(editor, parsed, options)
-      setStatus('Board generated successfully.')
+      const parsedAnalysis = analyzeTeachDrawDocument(parsed, markdown)
+      setStatus(`Board generated: ${parsedAnalysis.frameCount} frames, ${parsedAnalysis.codeBlockCount} code blocks.`)
     } catch (error) {
       console.error(error)
       setStatus('Could not parse Markdown.')
@@ -78,6 +75,7 @@ export function TeachDrawApp() {
       <MarkdownEditorPanel
         markdown={markdown}
         document={document}
+        analysis={analysis}
         status={status}
         options={options}
         isGenerating={isGenerating}

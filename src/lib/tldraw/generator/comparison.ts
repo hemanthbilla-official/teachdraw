@@ -7,7 +7,10 @@ export function getComparisonColumns(block: TeachDrawBlock): ComparisonColumn[] 
   const explicit = splitComparisonByStandaloneVs(text)
   if (explicit.length >= 2) return explicit.map(comparisonPartToColumn)
 
-  const titleColumns = splitHeadingByVs(block.heading)
+  const titleColumns = getComparisonTitleCandidates(block)
+  const markdownHeadingSections = splitComparisonByMarkdownHeadings(text)
+  if (markdownHeadingSections.length >= 2) return markdownHeadingSections
+
   const titledSections = splitComparisonBySectionLabels(text)
   if (titledSections.length >= 2) return titledSections
 
@@ -26,11 +29,49 @@ export function getComparisonColumns(block: TeachDrawBlock): ComparisonColumn[] 
     })
 
     if (sectionsByTitle.some((column) => column.body)) return sectionsByTitle
-    if (text) return titleColumns.map((title, index) => ({ title, body: index === 0 ? text : '' }))
+    if (text) {
+      const textLines = text.split('\n').map((line) => line.trim()).filter(Boolean)
+      const firstLineIsTitleList = textLines.length > 0 && splitInlineVs(textLines[0]).length >= 2
+      const remainingBody = firstLineIsTitleList ? textLines.slice(1).join('\n') : text
+      return titleColumns.map((title, index) => ({ title, body: index === 0 ? remainingBody : '' }))
+    }
     return titleColumns.map((title) => ({ title, body: '' }))
   }
 
   return []
+}
+
+function splitComparisonByMarkdownHeadings(text: string): ComparisonColumn[] {
+  const sections: ComparisonColumn[] = []
+  let current: ComparisonColumn | null = null
+
+  text.split('\n').forEach((line) => {
+    const match = line.trim().match(/^#{3,6}\s+(.+)$/)
+    if (match) {
+      if (current) sections.push(current)
+      current = { title: stripMarkdownMarkers(match[1]), body: '' }
+      return
+    }
+
+    if (current) {
+      current.body = [current.body, line].filter(Boolean).join('\n')
+    }
+  })
+
+  if (current) sections.push(current)
+  return sections.filter((section) => section.title || section.body).slice(0, 3)
+}
+
+export function getComparisonTitleCandidates(block: TeachDrawBlock): string[] {
+  const text = buildComparisonSourceText(block)
+  const firstTextLine = text
+    .split('\n')
+    .map((line) => line.trim())
+    .find(Boolean)
+  const textTitles = firstTextLine ? splitInlineVs(firstTextLine) : []
+  if (textTitles.length >= 2) return textTitles
+
+  return splitInlineVs(cleanBlockHeading(block.heading))
 }
 
 function buildComparisonSourceText(block: TeachDrawBlock): string {
@@ -47,8 +88,8 @@ function splitComparisonByStandaloneVs(text: string): string[] {
     .filter(Boolean)
 }
 
-function splitHeadingByVs(heading: string): string[] {
-  const clean = cleanBlockHeading(heading)
+function splitInlineVs(text: string): string[] {
+  const clean = stripMarkdownMarkers(text)
   if (!/\bvs\b|\bversus\b/i.test(clean)) return []
   return clean
     .split(/\s+(?:vs|versus)\s+/i)
@@ -93,7 +134,7 @@ function splitComparisonByKnownTitles(text: string, titles: string[]): Compariso
   let current: ComparisonColumn | null = null
 
   text.split('\n').forEach((line) => {
-    const trimmed = line.trim().replace(/:$/, '')
+    const trimmed = line.trim().replace(/^#{3,6}\s+/, '').replace(/:$/, '')
     const title = titles.find((item) => normalizeHeading(item) === normalizeHeading(trimmed))
 
     if (title) {

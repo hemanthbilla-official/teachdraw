@@ -4,7 +4,12 @@ import type { BoardLayout, LayoutMode, SpacingPreset } from './types'
 
 export function getBoardLayout(mode: LayoutMode, spacing: SpacingPreset): BoardLayout {
   const config = spacingConfig[spacing]
-  const frameWidth = mode === 'horizontal-cards' ? config.horizontalWidth : config.verticalWidth
+  const frameWidth =
+    mode === 'horizontal-cards'
+      ? config.horizontalWidth
+      : mode === 'whiteboard-map'
+        ? config.whiteboardWidth
+        : config.verticalWidth
 
   return {
     mode,

@@ -8,11 +8,13 @@ import {
   isCodeVisualBlock,
   isComparisonBlock,
   isCorrectBlock,
+  isFlowLikeBlock,
   isMistakeBlock,
   pickContentLayout,
 } from './classification'
 import { renderAnyBlock } from './blockRenderers'
 import { renderCodeBlockStack } from './codeCardRenderers'
+import { buildGroupedComparisonBlock, mergeGroupedComparisonBlocks } from './comparisonGrouping'
 import { renderComparisonBlock } from './comparisonRenderer'
 import { getVisibleFrameTitle, hasNonCodeText } from './content'
 import { renderFlowBlock } from './flowRenderer'
@@ -131,8 +133,9 @@ function renderVerticalFrame(
   layout: BoardLayout
 ): number {
   let cursorY = y
+  const renderBlocks = mergeGroupedComparisonBlocks(blocks)
 
-  blocks.forEach((block) => {
+  renderBlocks.forEach((block) => {
     const height = renderAnyBlock(shapes, block, parentId, x, cursorY, w, frameMeta, options, layout)
     if (height > 0) cursorY += height + layout.blockGap
   })
@@ -225,7 +228,7 @@ function renderHorizontalFlow(
   options: GenerateTeachDrawOptions,
   layout: BoardLayout
 ): number {
-  const flowBlocks = blocks.filter((block) => block.kind === 'flow')
+  const flowBlocks = blocks.filter(isFlowLikeBlock)
   const remaining = blocks.filter((block) => !flowBlocks.includes(block))
   let cursorY = y
 
@@ -256,15 +259,19 @@ function renderHorizontalComparison(
 ): number {
   const compareBlocks = blocks.filter(isComparisonBlock)
   const remaining = blocks.filter((block) => !compareBlocks.includes(block))
+  const used = new Set<TeachDrawBlock>(compareBlocks)
   let cursorY = y
 
   compareBlocks.forEach((block) => {
-    const height = renderComparisonBlock(shapes, block, parentId, x, cursorY, w, frameMeta)
+    const groupedComparison = buildGroupedComparisonBlock(block, remaining)
+    const height = renderComparisonBlock(shapes, groupedComparison?.block ?? block, parentId, x, cursorY, w, frameMeta)
+    groupedComparison?.usedBlocks.forEach((usedBlock) => used.add(usedBlock))
     cursorY += height + layout.blockGap
   })
 
-  if (remaining.length > 0) {
-    cursorY += renderHorizontalMixedGrid(shapes, remaining, parentId, x, cursorY, w, frameMeta, options, layout)
+  const unusedRemaining = remaining.filter((block) => !used.has(block))
+  if (unusedRemaining.length > 0) {
+    cursorY += renderHorizontalMixedGrid(shapes, unusedRemaining, parentId, x, cursorY, w, frameMeta, options, layout)
   } else {
     cursorY -= layout.blockGap
   }

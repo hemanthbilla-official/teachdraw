@@ -5,7 +5,7 @@ import { buildPlainBody, isSimilarText, looksLikeCommandText, normalizeHeading }
 export function pickContentLayout(blocks: TeachDrawBlock[], layoutHint?: TeachDrawLayoutHint): TeachDrawLayoutHint {
   if (layoutHint === 'mistake-fix' || hasMistakeCorrectPair(blocks)) return 'mistake-fix'
   if (layoutHint === 'comparison' || blocks.some(isComparisonBlock)) return 'comparison'
-  if (layoutHint === 'flow-focus' || blocks.some((block) => block.kind === 'flow')) return 'flow-focus'
+  if (layoutHint === 'flow-focus' || blocks.some(isFlowLikeBlock)) return 'flow-focus'
   if (layoutHint === 'code-focus' || blocks.some(isCodeVisualBlock)) return 'code-focus'
   if (layoutHint === 'practice-grid' || blocks.some((block) => block.kind === 'task' || block.kind === 'practice' || block.kind === 'assignment')) {
     return 'practice-grid'
@@ -28,12 +28,12 @@ export function getRenderableBlocks(frame: TeachDrawFrame, visibleTitle: string)
 export function isTrainerScriptBlock(block: TeachDrawBlock): boolean {
   const heading = normalizeHeading(block.heading)
   if (hiddenScreenNoteHeadings.has(heading)) return true
-  if (/^(ask|question|answer|expected answer|student expected answer)\b/.test(heading)) return true
+  if (/^(ask|question|answer|expected answer|student expected answer|student activity|wait for answer|oral question|trainer note|trainer line|trainer script)\b/.test(heading)) return true
   return false
 }
 
 export function isCodeVisualBlock(block: TeachDrawBlock): boolean {
-  return block.kind === 'code' || block.kind === 'command' || block.codeBlocks.length > 0 || isCommandBlock(block)
+  return block.kind === 'code' || block.kind === 'command' || block.kind === 'request' || block.kind === 'response' || block.codeBlocks.length > 0 || isCommandBlock(block)
 }
 
 export function isCommandBlock(block: TeachDrawBlock): boolean {
@@ -44,7 +44,11 @@ export function isCommandBlock(block: TeachDrawBlock): boolean {
 }
 
 export function isCalloutBlock(block: TeachDrawBlock): boolean {
-  return ['keyPoint', 'memory', 'warning', 'task', 'practice', 'assignment', 'recap'].includes(block.kind)
+  return ['important', 'keyPoint', 'memory', 'warning', 'task', 'practice', 'assignment', 'recap'].includes(block.kind)
+}
+
+export function isFlowLikeBlock(block: TeachDrawBlock): boolean {
+  return block.kind === 'flow' || block.kind === 'decision'
 }
 
 export function isMistakeBlock(block: TeachDrawBlock): boolean {

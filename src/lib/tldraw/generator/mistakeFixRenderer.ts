@@ -1,7 +1,7 @@
 import type { TLShape } from 'tldraw'
 import type { TeachDrawBlock } from '@/types/teachdraw'
 import { createGeoCard, type ShapePartial } from '../shapeHelpers'
-import { isCodeVisualBlock } from './classification'
+import { isCodeVisualBlock, isFlowLikeBlock } from './classification'
 import { renderCodeBlockStack } from './codeCardRenderers'
 import { hasNonCodeText } from './content'
 import { renderFlowBlock } from './flowRenderer'
@@ -43,7 +43,7 @@ export function renderMistakeFixPanel(
   )
   cursorY += 66
 
-  if (block.kind === 'flow') {
+  if (isFlowLikeBlock(block)) {
     cursorY += renderFlowBlock(shapes, block, parentId, x, cursorY, w, frameMeta, flowOrientation)
     return cursorY - y
   }

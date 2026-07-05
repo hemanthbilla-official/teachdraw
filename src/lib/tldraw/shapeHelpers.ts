@@ -1,8 +1,10 @@
 import {
   type Editor,
   type TLDefaultColorStyle,
+  type TLDefaultDashStyle,
   type TLDefaultFillStyle,
   type TLRichText,
+  type TLGeoShapeGeoStyle,
   type TLShape,
   createShapeId,
   toRichText,
@@ -94,11 +96,12 @@ export function createGeoCard(args: {
   w: number
   h: number
   text: string
-  geo?: 'rectangle' | 'diamond'
+  geo?: TLGeoShapeGeoStyle
   parentId?: TLShape['id']
   color?: TLDefaultColorStyle
   labelColor?: TLDefaultColorStyle
   fill?: TLDefaultFillStyle
+  dash?: TLDefaultDashStyle
   font?: 'draw' | 'sans' | 'serif' | 'mono'
   size?: 's' | 'm' | 'l' | 'xl'
   align?: 'start' | 'middle' | 'end' | 'start-legacy' | 'middle-legacy' | 'end-legacy'
@@ -116,7 +119,7 @@ export function createGeoCard(args: {
       geo: args.geo ?? 'rectangle',
       w: args.w,
       h: args.h,
-      dash: 'solid',
+      dash: args.dash ?? 'solid',
       url: '',
       growY: 0,
       scale: 1,
@@ -172,6 +175,7 @@ export function createArrow(args: {
   endY: number
   parentId?: TLShape['id']
   color?: TLDefaultColorStyle
+  dash?: TLDefaultDashStyle
   meta?: ShapeMetaInput
 }): ShapePartial {
   return {
@@ -185,7 +189,7 @@ export function createArrow(args: {
       labelColor: 'black',
       color: args.color ?? 'black',
       fill: 'none',
-      dash: 'solid',
+      dash: args.dash ?? 'solid',
       size: 'm',
       arrowheadStart: 'none',
       arrowheadEnd: 'arrow',

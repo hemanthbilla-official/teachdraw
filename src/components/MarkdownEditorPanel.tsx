@@ -1,4 +1,5 @@
 import type { TeachDrawDocument } from '@/types/teachdraw'
+import type { TeachDrawBoardAnalysis } from '@/lib/markdown/analyzeTeachDrawDocument'
 import type { GenerateTeachDrawOptions } from '@/lib/tldraw/generateTeachDrawBoard'
 import { GenerationOptions } from './GenerationOptions'
 import { ParserModeBadge } from './ParserModeBadge'
@@ -6,6 +7,7 @@ import { ParserModeBadge } from './ParserModeBadge'
 type Props = {
   markdown: string
   document: TeachDrawDocument
+  analysis: TeachDrawBoardAnalysis
   status: string
   options: GenerateTeachDrawOptions
   isGenerating: boolean
@@ -18,6 +20,7 @@ type Props = {
 export function MarkdownEditorPanel({
   markdown,
   document,
+  analysis,
   status,
   options,
   isGenerating,
@@ -33,7 +36,7 @@ export function MarkdownEditorPanel({
         <p className="mt-1 text-sm text-slate-600">Markdown to editable tldraw board</p>
       </div>
 
-      <ParserModeBadge document={document} />
+      <ParserModeBadge document={document} analysis={analysis} />
       <GenerationOptions options={options} onChange={onOptionsChange} />
 
       <textarea

@@ -42,18 +42,21 @@ export function cleanBoardTitle(rawTitle: string): string {
 }
 
 export function cleanCodeContent(language: string | undefined, content: string): string {
+  const normalizedContent = trimBlankCodeLines(content)
   const lang = language?.trim().toLowerCase()
-  if (!lang) return content.trim()
+  if (!lang) return normalizedContent
 
-  const lines = content.replace(/\r\n/g, '\n').split('\n')
+  const lines = normalizedContent.replace(/\r\n/g, '\n').split('\n')
   const firstLine = lines[0]?.trim().toLowerCase()
   const languageAliases: Record<string, string[]> = {
     css: ['css'],
     html: ['html'],
     javascript: ['javascript', 'js'],
     js: ['javascript', 'js'],
+    jsx: ['jsx'],
     typescript: ['typescript', 'ts'],
     ts: ['typescript', 'ts'],
+    tsx: ['tsx'],
     python: ['python', 'py'],
     py: ['python', 'py'],
     json: ['json'],
@@ -67,10 +70,24 @@ export function cleanCodeContent(language: string | undefined, content: string):
   const aliases = languageAliases[lang] ?? [lang]
 
   if (firstLine && aliases.includes(firstLine)) {
-    return lines.slice(1).join('\n').trim()
+    return trimBlankCodeLines(lines.slice(1).join('\n'))
   }
 
-  return content.trim()
+  return normalizedContent
+}
+
+function trimBlankCodeLines(content: string): string {
+  const lines = content.replace(/\r\n/g, '\n').split('\n')
+
+  while (lines.length > 0 && lines[0].trim() === '') {
+    lines.shift()
+  }
+
+  while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+    lines.pop()
+  }
+
+  return lines.join('\n')
 }
 
 export function slugId(prefix: string, index: number, label: string): string {
@@ -87,6 +104,7 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
   const h = heading.toLowerCase()
 
   if (h.includes('title')) return 'title'
+  if (h.includes('decision')) return 'decision'
   if (h.includes('mistake') || h.includes('wrong') || h.includes('bad approach')) return 'mistake'
   if (h.includes('correct') || h.includes('fix') || h.includes('solution') || h.includes('better approach')) return 'correct'
 
@@ -109,7 +127,6 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
     h.includes('final concept flow') ||
     h.includes('project view') ||
     h.includes('mapping') ||
-    h.includes('decision') ||
     h.includes('condition') ||
     h.includes('branch') ||
     h.includes('if')
@@ -118,6 +135,9 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
   }
 
   if (h.includes('code') || h.includes('first code') || h.includes('complete code')) return 'code'
+
+  if (h === 'request' || h.includes('request body') || h.includes('api request')) return 'request'
+  if (h === 'response' || h.includes('api response')) return 'response'
 
   if (
     h.includes('command') ||
@@ -136,8 +156,8 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
   }
   if (h.includes('example') || h.includes('preview') || h.includes('use case')) return 'example'
   if (h.includes('memory line') || h.includes('remember')) return 'memory'
-  if (h.includes('key point') || h.includes('core idea') || h.includes('core formula') || h === 'important') return 'keyPoint'
-  if (h.includes('important line') || h.includes('important')) return 'keyPoint'
+  if (h.includes('important line') || h === 'important' || h.includes('important')) return 'important'
+  if (h.includes('key point') || h.includes('core idea') || h.includes('core formula')) return 'keyPoint'
   if (h.includes('warning') || h.includes('error') || h.includes('common mistake') || h.includes('common error')) {
     return 'warning'
   }
@@ -325,7 +345,7 @@ export function parseBlock(id: string, heading: string, rawContent: string, kind
     bullets: finalBullets,
     numberedItems,
     codeBlocks,
-    flowSteps: kind === 'flow' ? parseFlowSteps(textWithoutCode, finalBullets) : [],
+    flowSteps: kind === 'flow' || kind === 'decision' ? parseFlowSteps(textWithoutCode, finalBullets) : [],
   }
 }
 
@@ -342,7 +362,7 @@ export function parseBoardTitle(markdownBeforeFrames: string): { rawTitle: strin
   const lines = markdownBeforeFrames.split('\n')
   const firstHeading = lines
     .map((line) => line.match(/^#\s+(.+)$/)?.[1])
-    .find((title) => title && !/^Frame\s+\d+\s*:/i.test(title))
+    .find((title) => title && !/^Frame(?:\s+\d+\s*:|\s+)/i.test(title))
   const rawTitle = firstHeading ? cleanBoardTitle(firstHeading) || 'Untitled Lesson' : 'Untitled Lesson'
 
   const boardTitleIndex = lines.findIndex((line) => /^##\s+Board Title\s*$/i.test(line.trim()))

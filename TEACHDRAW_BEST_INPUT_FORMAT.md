@@ -4,6 +4,8 @@ Use this guide when asking an LLM to create Markdown for TeachDraw.
 
 TeachDraw is for screen notes. The Markdown should become clean tldraw cards that a trainer can show during class and edit afterward.
 
+The same Markdown can render as Vertical Cards, Horizontal Cards, or Whiteboard Map. Whiteboard Map is best when you want a clean live-teaching board with concept notes, visual/code content, callouts, and arrows between related ideas.
+
 Do not ask the LLM to include oral questions, expected student answers, trainer scripts, stage directions, or teacher-only prompts. Ask questions orally during class instead.
 
 ## Core Rules
@@ -16,7 +18,8 @@ Do not ask the LLM to include oral questions, expected student answers, trainer 
 - Keep real symbols exactly as written: slashes, quotes, braces, decorators, `.venv`, URLs, `localhost`, and ports.
 - Use `**bold**` only for visual emphasis in text, not inside code.
 - Add labels before multiple code blocks, such as `Request:` and `Response:`.
-- Use standalone `vs` lines for comparisons.
+- Prefer comparison frames with a title line such as `Padding vs Margin`, followed by matching `## Padding` and `## Margin` blocks.
+- Use standalone `vs` lines when the full comparison lives inside one `## Compare` block.
 - Avoid oral-only blocks such as `Question`, `Ask Students`, `Expected Answer`, and `Student Activity`.
 
 ## Board Header
@@ -170,7 +173,30 @@ FastAPI returns validation error
 
 ## Comparison Frame
 
-Use standalone `vs` lines. Do not make `Compare` a column.
+Preferred format: put the comparison title inside `## Compare`, then use matching block headings for each column. Do not make `Compare` a column.
+
+```md
+# Frame 5: Padding vs Margin
+<!-- layout: compare -->
+
+## Compare
+
+Padding vs Margin
+
+## Padding
+
+Padding is space inside the element, between content and border.
+
+It increases the clickable or colored area of the element.
+
+## Margin
+
+Margin is space outside the element, between this element and nearby elements.
+
+It separates one element from another.
+```
+
+Standalone `vs` lines also work when the whole comparison should stay inside one block.
 
 ```md
 # Frame 5: Padding vs Margin
@@ -458,4 +484,7 @@ For comparisons, use standalone vs lines.
 
 Topic:
 [paste topic here]
+
+Comparison rule:
+Prefer `## Compare` with `A vs B`, then matching `## A` and `## B` blocks. Use standalone `vs` lines only when writing all columns inside one Compare block.
 ```

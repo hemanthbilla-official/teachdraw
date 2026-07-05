@@ -1,6 +1,6 @@
-export type LayoutMode = 'horizontal-cards' | 'vertical-cards'
+export type LayoutMode = 'horizontal-cards' | 'vertical-cards' | 'whiteboard-map'
 
-export type SpacingPreset = 'comfortable' | 'spacious' | 'compact' | 'extra-compact' | 'extreme-compact'
+export type SpacingPreset = 'comfortable' | 'compact' | 'extra-compact' | 'extreme-compact'
 
 export type FlowOrientation = 'auto' | 'vertical' | 'horizontal'
 

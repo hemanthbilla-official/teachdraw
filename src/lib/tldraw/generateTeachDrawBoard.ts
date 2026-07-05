@@ -7,6 +7,7 @@ import { renderFrameContent } from './generator/frameRenderers'
 import { getBoardLayout, setFrameHeight } from './generator/layout'
 import { estimateTextCardHeight } from './generator/measurements'
 import { pickFrameColor } from './generator/palette'
+import { renderWhiteboardFrameContent } from './generator/whiteboardRenderer'
 import type { GenerateTeachDrawOptions } from './generator/types'
 export type { GenerateTeachDrawOptions, LayoutMode, SpacingPreset } from './generator/types'
 
@@ -38,7 +39,10 @@ export function generateTeachDrawBoard(
       meta: frameMeta,
     })
     const parentId = frameShape.id as TLShape['id']
-    const contentHeight = renderFrameContent(frameShapes, frame, parentId, layout, opts, index)
+    const contentHeight =
+      opts.layoutMode === 'whiteboard-map'
+        ? renderWhiteboardFrameContent(frameShapes, frame, parentId, layout, opts, index)
+        : renderFrameContent(frameShapes, frame, parentId, layout, opts, index)
     const frameHeight = Math.max(layout.minFrameHeight, Math.ceil(contentHeight + layout.paddingY))
 
     setFrameHeight(frameShape, frameHeight)
