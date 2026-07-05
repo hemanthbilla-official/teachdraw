@@ -1,271 +1,84 @@
-# TeachDraw Screen-Ready Markdown Format
+# TeachDraw Best Input Format
 
-Use this file as the instruction prompt for generating TeachDraw Markdown.
+Use this guide when asking an LLM to create Markdown for TeachDraw.
 
-The generated Markdown will be shown directly on a projected screen as whiteboard notes. It must look like polished teaching notes, not a spoken script.
+TeachDraw is for screen notes. The Markdown should become clean tldraw cards that a trainer can show during class and edit afterward.
 
-## Master Prompt
+Do not ask the LLM to include oral questions, expected student answers, trainer scripts, stage directions, or teacher-only prompts. Ask questions orally during class instead.
 
-```text
-Create TeachDraw Markdown for screen-ready programming whiteboard notes.
+## Core Rules
 
-Return only Markdown.
-Use frame-based TeachDraw format.
-Each `# Frame X: Title` is one whiteboard section.
+- Write practical class notes, not a dense article.
+- Use `# Frame X: Title` for every board section.
+- Use `## Heading` for every block inside a frame.
+- Prefer 2-4 useful teaching lines for explanations.
+- Keep code in fenced code blocks.
+- Keep real symbols exactly as written: slashes, quotes, braces, decorators, `.venv`, URLs, `localhost`, and ports.
+- Use `**bold**` only for visual emphasis in text, not inside code.
+- Add labels before multiple code blocks, such as `Request:` and `Response:`.
+- Use standalone `vs` lines for comparisons.
+- Avoid oral-only blocks such as `Question`, `Ask Students`, `Expected Answer`, and `Student Activity`.
 
-Target level:
-- Beginner to intermediate programming.
-- Bootcamp-style pacing.
-- Clear, direct, visual board notes.
+## Board Header
 
-Writing style:
-- Write direct whiteboard notes.
-- Keep text screen-friendly.
-- Use short paragraphs with complete meaning.
-- Prefer 3-6 useful teaching lines per explanation block.
-- Explain what the concept means.
-- Explain why the concept matters.
-- Include concrete examples.
-- Include code walkthroughs after code.
-- Include important points and memory lines.
-- Preserve all programming symbols exactly.
-- Use ASCII punctuation.
+```md
+# TLDRAW CONTENT: FastAPI Lesson
 
-Content rules:
-- No oral teaching script.
-- No questions.
-- No audience answers.
-- No Q&A prompts.
-- No planning notes.
-- No references to the person teaching.
-- No references to the audience.
-- No references to the current day or session.
-- No broken encoding characters.
+## Board Title
 
-Frame quality:
-- Every frame teaches one clear idea.
-- Concept frames include topic context, core idea, meaning, example, important point, and memory line when useful.
-- Code frames include before-code context, code, code walkthrough, what to notice, test step, and important point when useful.
-- Flow frames include a clear process flow, meaning, and important point.
-- Comparison frames include balanced columns and clear use cases.
-- Mistake/fix frames include wrong version, correct version, why the fix works, and important point.
-- Practice frames include task, requirements, test steps, expected output, and debug checklist.
+**FastAPI Request Body and POST API**
 
-Frame count:
-- Short topic: 8-12 frames.
-- Full lesson: 18-30 frames.
+Subtitle:
+
+**Request Body -> Pydantic -> POST -> Validation -> Response**
+
+---
 ```
 
-## Supported Layout Comments
+## Concept Frame
 
-Place one layout comment immediately after every frame heading.
+Use this for definitions, meanings, mental models, and key points.
 
 ```md
 # Frame 1: Topic Big Picture
-<!-- layout: concept-focus -->
-```
+<!-- layout: horizontal -->
 
-Use these layout comments:
-
-```md
-<!-- layout: concept-focus -->
-<!-- layout: code-focus -->
-<!-- layout: flow-focus -->
-<!-- layout: mistake-fix -->
-<!-- layout: practice-grid -->
-<!-- layout: comparison -->
-<!-- layout: recap -->
-```
-
-## Best Heading Names
-
-TeachDraw works best with these headings:
-
-```md
-## Topic Context
-## Core Idea
-## Problem
-## Meaning
-## Why It Matters
 ## Definition
-## Example
-## Flow
-## Decision
-## Before Code
-## Code
-## Commands
-## Code Walkthrough
-## What To Notice
-## Request
-## Response
-## Test In Docs
-## Compare
-## Mistake
-## Correct
-## Why The Fix Works
-## Important
-## Key Point
-## Memory Line
-## Warning
-## Practice Task
-## Requirements
-## Test Steps
-## Expected Output
-## Debug Checklist
-## Final Instruction
-## Assignment
-## Recap
-## Next Topic
-```
 
-## Recommended Lesson Shape
+POST APIs are used when the client sends new data to the backend.
 
-Use this shape for a full programming lesson:
-
-```md
-# Frame 1: Topic Big Picture
-# Frame 2: Topic Flow
-# Frame 3: Recap Of Required Knowledge
-# Frame 4: Problem To Solve
-# Frame 5: Core Concept
-# Frame 6: Visual Flow
-# Frame 7: Starter Code
-# Frame 8: Main Code Step 1
-# Frame 9: Main Code Step 2
-# Frame 10: Request Example
-# Frame 11: Response Example
-# Frame 12: Code Meaning
-# Frame 13: Common Mistake
-# Frame 14: Correct Version
-# Frame 15: Validation Or Debug Case
-# Frame 16: Practice Task
-# Frame 17: Recap
-# Frame 18: Next Topic
-```
-
-For larger topics, repeat this pattern:
-
-```text
-Concept -> Flow -> Code -> Meaning -> Mistake/Fix -> Test -> Practice
-```
-
-## Concept Frame Format
-
-```md
-# Frame 1: Request Body Big Picture
-<!-- layout: concept-focus -->
-
-## Topic Context
-
-GET APIs read existing backend data.
-
-POST APIs send new data to the backend.
-
-Request body is used when the data has multiple fields.
-
-A full object should travel as JSON inside the request body.
-
-## Core Idea
-
-Request body carries data from the client to the backend.
-
-For POST APIs, the request body usually contains JSON.
-
-FastAPI reads that JSON and passes it to the route function.
-
-Pydantic checks the structure before the function logic runs.
-
-## Why It Matters
-
-Real applications send form data to the backend.
-
-Create account, add product, create post, and submit profile are POST-style actions.
-
-The URL selects the API.
-
-The request body carries the object data.
-
-## Example
-
-```json
-{
-  "id": 3,
-  "title": "Python Basics",
-  "author": "Code Team",
-  "genre": "Technology",
-  "language": "English"
-}
-```
-
-## Important
-
-GET reads existing data.
-
-POST sends new data.
-
-## Memory Line
-
-URL selects the API.
-
-Request body carries the data.
-```
-
-## Flow Frame Format
-
-```md
-# Frame 2: POST Request Flow
-<!-- layout: flow-focus -->
-
-## Flow
-
-Client sends JSON body
-->
-FastAPI receives POST request
-->
-FastAPI matches route
-->
-Pydantic checks required fields
-->
-Pydantic checks data types
-->
-Route function receives `book`
-->
-Backend stores the data
-->
-JSON response returns
+The backend reads the request body, validates it, and creates or stores something.
 
 ## Meaning
 
-The request body is not trusted blindly.
+GET usually reads existing data.
 
-FastAPI first connects the request to the correct route.
+POST usually sends new data to the server.
 
-Pydantic validates the incoming JSON against the model.
+## Key Point
 
-Only valid data reaches the function as a usable object.
+Request body data does not come from the URL path.
 
-## Important
-
-Validation happens before the main route logic finishes.
+It comes from the body sent by the client.
 ```
 
-## Code Frame Format
+## Code Frame
+
+Use this when code is the main teaching object. Put explanation text before or beside the code.
 
 ````md
-# Frame 6: Create Book Model
-<!-- layout: code-focus -->
+# Frame 2: Pydantic Model
+<!-- layout: code -->
 
-## Before Code
+## Meaning
 
-The backend needs a clear shape for incoming book data.
+Pydantic describes the shape of the data expected by the API.
 
-The model lists required fields.
+FastAPI uses it to validate incoming JSON before the function logic runs.
 
-Each field also has a data type.
+## Example
 
-FastAPI uses this model to validate the request body.
-
-## Code
+This model expects three fields: `id`, `title`, and `author`.
 
 ```python
 from pydantic import BaseModel
@@ -274,388 +87,375 @@ class Book(BaseModel):
     id: int
     title: str
     author: str
-    genre: str
-    language: str
 ```
 
-## Code Walkthrough
+## Memory Line
 
-`Book` is the model name.
-
-`BaseModel` gives the model Pydantic validation behavior.
-
-`id: int` means the request body should send a number.
-
-`title`, `author`, `genre`, and `language` should be text values.
-
-## What To Notice
-
-The model does not create an API by itself.
-
-It defines the expected request body structure.
-
-The route function uses this model as a parameter type.
-
-## Important
-
-The request body should match the Pydantic model.
+Model class = expected request body shape.
 ````
 
-## API Route Frame Format
+## Multiple Code Blocks With Labels
+
+Use labels directly before each fenced block.
 
 ````md
-# Frame 9: Create POST Books API
-<!-- layout: code-focus -->
+# Frame 3: Request and Response
+<!-- layout: code -->
 
-## Before Code
+## Example
 
-The route receives one new book from the request body.
+Request:
 
-FastAPI converts the JSON body into the `book` parameter.
-
-The data is converted to a normal dictionary.
-
-The dictionary is added to the temporary `books` list.
-
-## Code
-
-```python
-@app.post("/books")
-def create_book(book: Book):
-    new_book = book.model_dump()
-    books.append(new_book)
-
-    return {
-        "message": "Book added successfully",
-        "book": new_book
-    }
+```text
+POST /books
 ```
 
-## Code Walkthrough
-
-`@app.post("/books")` creates a POST endpoint.
-
-`book: Book` tells FastAPI to read the request body using the `Book` model.
-
-`book.model_dump()` converts the Pydantic object into a Python dictionary.
-
-`books.append(new_book)` adds the new book to the list.
-
-The returned dictionary becomes the JSON response.
-
-## Test In Docs
-
-Open `/docs`.
-
-Choose `POST /books`.
-
-Click `Try it out`.
-
-Paste valid JSON.
-
-Click `Execute`.
-
-## Important
-
-The model must exist before the route uses it.
-````
-
-## Request And Response Frame Format
-
-````md
-# Frame 10: POST Request And Response
-<!-- layout: code-focus -->
-
-## Request
+Body:
 
 ```json
 {
   "id": 3,
   "title": "Python Basics",
-  "author": "Code Team",
-  "genre": "Technology",
-  "language": "English"
+  "author": "Asha"
 }
 ```
 
-## Response
+Response:
 
 ```json
 {
-  "message": "Book added successfully",
-  "book": {
-    "id": 3,
-    "title": "Python Basics",
-    "author": "Code Team",
-    "genre": "Technology",
-    "language": "English"
-  }
+  "message": "Book created",
+  "book_id": 3
 }
 ```
-
-## Meaning
-
-The request body enters the backend as the `book` parameter.
-
-The backend stores the new book in the list.
-
-The response confirms the saved data.
-
-## Important
-
-JSON uses double quotes.
-
-The request body should not use Python dictionary syntax.
 ````
 
-## Comparison Frame Format
+## Flow Frame
+
+Use this when the main teaching object is a process.
 
 ```md
-# Frame 5: GET vs POST
-<!-- layout: comparison -->
+# Frame 4: POST API Flow
+<!-- layout: flow -->
 
-## Compare
+## Flow
 
-GET
-
-- Reads existing data
-- Commonly tested in the browser
-- Data can come from path parameters
-- Data can come from query parameters
-- Example: `GET /books`
-
-vs
-
-POST
-
-- Sends new data to the backend
-- Usually needs request body
-- Request body usually contains JSON
-- Commonly tested using `/docs`, Postman, or frontend forms
-- Example: `POST /books`
+Client sends JSON -> FastAPI receives body -> Pydantic validates -> Route function runs -> Response returns
 
 ## Important
 
-GET asks the backend for data.
-
-POST gives the backend new data.
-
-## Memory Line
-
-GET = read.
-
-POST = create or send.
+Validation happens before the route function body is executed.
 ```
 
-## Three-Column Comparison Format
+## Decision Flow Frame
+
+Use standalone `Yes` and `No` lines. TeachDraw renders them as branch labels, not normal flow steps.
 
 ```md
-# Frame 7: Path, Query, Body
-<!-- layout: comparison -->
+# Frame 5: Body Validation Decision
+<!-- layout: flow -->
+
+## Decision
+
+JSON matches the `Book` model
+
+Yes
+
+Function receives `book`
+
+No
+
+FastAPI returns validation error
+```
+
+## Comparison Frame
+
+Use standalone `vs` lines. Do not make `Compare` a column.
+
+```md
+# Frame 5: Padding vs Margin
+<!-- layout: compare -->
 
 ## Compare
 
-Path Parameter
+Padding
 
-- Part of the URL path
-- Identifies one resource
-- Example: `/books/3`
-- Best for selecting one item by ID
-
-vs
-
-Query Parameter
-
-- Comes after `?` in the URL
-- Filters a collection
-- Example: `/books?genre=Fiction`
-- Best for searching and filtering
+- Space inside the element
+- Increases the clickable or colored area
+- Background color covers padding
 
 vs
 
-Request Body
+Margin
 
-- Sent inside the request
-- Carries full object data
-- Example: JSON for a new book
-- Best for POST and form submissions
-
-## Important
-
-Path identifies.
-
-Query filters.
-
-Body sends object data.
+- Space outside the element
+- Separates one element from another
+- Background color does not cover margin
 ```
 
-## Mistake/Fix Frame Format
+Three-column comparison:
+
+```md
+# Frame 6: Display Types
+<!-- layout: compare -->
+
+## Compare
+
+Block
+
+- Starts on a new line
+- Takes full available width
+- Example: `div`, `p`, `section`
+
+vs
+
+Inline
+
+- Stays in the same line
+- Width depends on content
+- Example: `span`, `a`, `strong`
+
+vs
+
+Inline-block
+
+- Stays inline
+- Allows width and height
+- Useful for button-like elements
+```
+
+## Mistake/Fix Frame
+
+Put explanation text above each code block.
 
 ````md
-# Frame 13: Missing BaseModel Import
+# Frame 7: Route Order Mistake
 <!-- layout: mistake-fix -->
 
 ## Mistake
 
-`BaseModel` is used before it is imported.
-
-Python cannot create the model because `BaseModel` is unknown.
+Writing the dynamic route before the fixed route can make `/books/latest` behave like an ID.
 
 ```python
-from fastapi import FastAPI
+@app.get("/books/{book_id}")
+def get_book(book_id: int):
+    return books[book_id]
 
-class Book(BaseModel):
-    id: int
-    title: str
+@app.get("/books/latest")
+def latest_book():
+    return books[-1]
 ```
 
 ## Correct
 
-`BaseModel` is imported from Pydantic before the model is created.
+Put the fixed route first so FastAPI matches it before the dynamic route.
 
 ```python
-from fastapi import FastAPI
-from pydantic import BaseModel
+@app.get("/books/latest")
+def latest_book():
+    return books[-1]
 
-class Book(BaseModel):
-    id: int
-    title: str
+@app.get("/books/{book_id}")
+def get_book(book_id: int):
+    return books[book_id]
 ```
+````
 
-## Why The Fix Works
+## Practice Frame
 
-`BaseModel` comes from Pydantic.
+Use this for short implementation tasks, not oral questions.
 
-The model can inherit from `BaseModel` only after the import exists.
+```md
+# Frame 8: Practice Task
+<!-- layout: practice -->
+
+## Practice
+
+Create a POST API named `/books`.
+
+Accept `id`, `title`, and `author` in the request body.
+
+Return a success message with the created book.
 
 ## Important
 
-Request body models need `BaseModel`.
-````
-
-## Practice Frame Format
-
-```md
-# Frame 16: Practice Task
-<!-- layout: practice-grid -->
-
-## Practice Task
-
-Create and test a POST API for adding books.
-
-## Requirements
-
-- Keep the existing `books` list
-- Create a `Book` Pydantic model
-- Add fields: `id`, `title`, `author`, `genre`, `language`
-- Create `POST /books`
-- Convert the model using `model_dump()`
-- Append the new book to the list
-- Return a success message and the added book
-
-## Test Steps
-
-- Open `/docs`
-- Click `POST /books`
-- Click `Try it out`
-- Send one valid book JSON
-- Click `Execute`
-- Run `GET /books`
-- Confirm the new book appears
-
-## Expected Output
-
-`GET /books` returns old books plus the newly added book.
-
-The POST response shows a success message.
-
-## Debug Checklist
-
-- Check the imports
-- Check JSON double quotes
-- Check all required fields
-- Check `id` is a number
+Keep the Pydantic model separate from the route function.
 ```
 
-## Recap Frame Format
+## Recap Frame
+
+Use this at the end of a topic.
 
 ```md
-# Frame 17: Recap
+# Frame 9: Recap
 <!-- layout: recap -->
 
 ## Recap
 
-GET reads existing backend data.
-
-POST sends new data to the backend.
-
-Request body carries JSON data.
-
-Pydantic models define the expected body structure.
-
-FastAPI validates incoming data before route logic runs.
-
-`model_dump()` converts a Pydantic object into a Python dictionary.
-
-## Important
-
-Request body is the main idea of POST APIs.
-
-Pydantic makes request body data safer and predictable.
+- Request body is data sent by the client.
+- Pydantic validates the body shape.
+- POST is commonly used to create new data.
+- FastAPI returns a response after validation and function logic.
 
 ## Memory Line
 
-Request body sends data.
-
-Pydantic checks data.
-
-POST creates data.
+Body -> Model -> Function -> Response
 ```
 
-## Code Fence Rules
-
-Use code fences like this:
+## CSS Example
 
 ````md
-```python
-from fastapi import FastAPI
+# Frame 1: CSS Box Model
+<!-- layout: compare -->
+
+## Compare
+
+Padding
+
+- Space between content and border
+- Background color includes padding
+- Useful for button comfort
+
+vs
+
+Margin
+
+- Space outside the border
+- Separates elements from each other
+- Does not receive background color
+
+## Example
+
+```css
+.card {
+    padding: 16px;
+    margin-bottom: 24px;
+}
 ```
 ````
 
-The code block content should contain only real code.
+## JavaScript Example
 
-The language name belongs only after the opening fence.
+````md
+# Frame 1: Array Map
+<!-- layout: code -->
 
-## FastAPI POST Checklist
+## Meaning
 
-Include these parts for request-body lessons:
+`map()` creates a new array by transforming every item.
 
-- `from fastapi import FastAPI`
-- `from pydantic import BaseModel`
-- `app = FastAPI()`
-- Starter data list
-- Pydantic model
-- `POST /books` route
-- `book: Book` parameter
-- `book.model_dump()`
-- `books.append(new_book)`
-- Request JSON example
-- Response JSON example
-- `/docs` testing steps
-- Validation mistake/fix examples
-- Practice task
+It does not change the original array.
 
-## Final Output Checklist
+## Example
+
+```js
+const prices = [100, 200, 300]
+
+const withTax = prices.map((price) => price * 1.18)
+
+console.log(withTax)
+```
+
+## Key Point
+
+Use `map()` when the output has the same number of items as the input.
+````
+
+## React Example
+
+````md
+# Frame 1: React State
+<!-- layout: code -->
+
+## Meaning
+
+State stores data that can change on the screen.
+
+When state changes, React re-renders the component.
+
+## Example
+
+```jsx
+import { useState } from "react"
+
+export function Counter() {
+    const [count, setCount] = useState(0)
+
+    return (
+        <button onClick={() => setCount(count + 1)}>
+            Count: {count}
+        </button>
+    )
+}
+```
+
+## Memory Line
+
+State change -> render again.
+````
+
+## MERN Example
+
+```md
+# Frame 1: MERN Request Flow
+<!-- layout: flow -->
+
+## Flow
+
+React form -> Express route -> Controller -> MongoDB query -> JSON response -> React state update
+
+## Important
+
+The frontend should not talk directly to MongoDB.
+
+It talks to the Express API.
+```
+
+## Node and Express Example
+
+````md
+# Frame 1: Express GET API
+<!-- layout: code -->
+
+## Meaning
+
+Express routes connect an HTTP method and path to a function.
+
+The function receives `req` and `res`.
+
+## Example
+
+```js
+import express from "express"
+
+const app = express()
+
+app.get("/students", (req, res) => {
+    res.json([
+        { id: 1, name: "Asha" },
+        { id: 2, name: "Ravi" }
+    ])
+})
+
+app.listen(3000, () => {
+    console.log("Server running on http://localhost:3000")
+})
+```
+````
+
+## Prompt Template For LLMs
 
 ```text
-1. The output is only Markdown.
-2. Every frame has one layout comment.
-3. Every frame has one clear teaching idea.
-4. No questions are included.
-5. No Q&A script is included.
-6. No planning notes are included.
-7. Code blocks contain only real code.
-8. Code examples include walkthrough notes.
-9. Important points are short and strong.
-10. The notes are ready to show on screen.
+Create TeachDraw Markdown for a programming class.
+
+Write screen notes only, not a trainer script.
+Do not include oral questions, expected student answers, or teacher-only prompts.
+Use # Frame X: Title for sections and ## Heading for blocks.
+Use 2-4 practical teaching lines per explanation.
+Use fenced code blocks and preserve code exactly.
+Use labels before multiple code blocks, such as Request:, Body:, and Response:.
+For comparisons, use standalone vs lines.
+
+Topic:
+[paste topic here]
 ```

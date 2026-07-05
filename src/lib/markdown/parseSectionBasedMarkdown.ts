@@ -1,7 +1,8 @@
 import type { TeachDrawBlock, TeachDrawDocument, TeachDrawFrame } from '@/types/teachdraw'
 import { detectBlockKind, normalizeMarkdown, parseBlock, slugId, stripMarkdownMarkers } from './markdownUtils'
 
-const sectionPrefixRegex = /^(Concept|Flow|Code|Task|Assignment|Warning|Compare|Recap|Example|Command|Definition)\s*:\s*(.+)$/i
+const sectionPrefixRegex =
+  /^(Concept|Flow|Code|Task|Practice|Assignment|Warning|Mistake|Correct|Compare|Recap|Example|Command|Definition|Meaning|Explanation)\s*:\s*(.+)$/i
 
 export function parseSectionBasedMarkdown(markdown: string): TeachDrawDocument {
   const normalized = normalizeMarkdown(markdown)

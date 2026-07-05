@@ -87,6 +87,8 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
   const h = heading.toLowerCase()
 
   if (h.includes('title')) return 'title'
+  if (h.includes('mistake') || h.includes('wrong') || h.includes('bad approach')) return 'mistake'
+  if (h.includes('correct') || h.includes('fix') || h.includes('solution') || h.includes('better approach')) return 'correct'
 
   if (
     h.includes('before code') ||
@@ -95,7 +97,7 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
     h.includes('meaning of code') ||
     h.includes('code explanation')
   ) {
-    return 'normal'
+    return 'explanation'
   }
 
   if (
@@ -128,13 +130,19 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
   }
 
   if (h.includes('definition')) return 'definition'
+  if (h.includes('meaning')) return 'meaning'
+  if (h.includes('explanation') || h.includes('explain') || h.includes('walkthrough') || h.includes('what to notice')) {
+    return 'explanation'
+  }
   if (h.includes('example') || h.includes('preview') || h.includes('use case')) return 'example'
+  if (h.includes('memory line') || h.includes('remember')) return 'memory'
   if (h.includes('key point') || h.includes('core idea') || h.includes('core formula') || h === 'important') return 'keyPoint'
-  if (h.includes('important line') || h.includes('memory line') || h.includes('trainer line')) return 'keyPoint'
+  if (h.includes('important line') || h.includes('important')) return 'keyPoint'
   if (h.includes('warning') || h.includes('error') || h.includes('common mistake') || h.includes('common error')) {
     return 'warning'
   }
-  if (h.includes('task') || h.includes('practice') || h.includes('student activity')) return 'task'
+  if (h.includes('practice')) return 'practice'
+  if (h.includes('task') || h.includes('student activity')) return 'task'
   if (h.includes('assignment') || h.includes('homework')) return 'assignment'
   if (h.includes('compare') || h.includes('difference') || h.includes('vs')) return 'compare'
   if (h.includes('recap') || h.includes('summary')) return 'recap'

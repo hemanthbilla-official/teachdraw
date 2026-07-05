@@ -1,4 +1,4 @@
-import type { TeachDrawBlock, TeachDrawDocument, TeachDrawFrame, TeachDrawLayoutHint } from '@/types/teachdraw'
+import type { TeachDrawDocument, TeachDrawFrame, TeachDrawLayoutHint } from '@/types/teachdraw'
 import { normalizeMarkdown, parseBlock, parseBoardTitle, slugId, stripMarkdownMarkers } from './markdownUtils'
 
 const frameHeadingRegex = /^#{1,2}\s*Frame\s+(\d+)\s*:\s*(.+)$/i
@@ -37,7 +37,7 @@ export function parseFrameBasedMarkdown(markdown: string): TeachDrawDocument {
     rawTitle: titleInfo.rawTitle,
     boardTitle: titleInfo.boardTitle ?? titleInfo.rawTitle,
     boardSubtitle: titleInfo.boardSubtitle,
-    frames: splitCrowdedFrames(frames),
+    frames,
   }
 }
 
@@ -51,57 +51,31 @@ const layoutHints = new Set<TeachDrawLayoutHint>([
   'recap',
 ])
 
+const layoutHintAliases: Record<string, TeachDrawLayoutHint> = {
+  concept: 'concept-focus',
+  horizontal: 'concept-focus',
+  vertical: 'concept-focus',
+  code: 'code-focus',
+  flow: 'flow-focus',
+  compare: 'comparison',
+  practice: 'practice-grid',
+  task: 'practice-grid',
+  mistake: 'mistake-fix',
+  fix: 'mistake-fix',
+}
+
 function parseFrameLayoutHint(lines: string[]): TeachDrawLayoutHint | undefined {
   for (const line of lines.slice(0, 6)) {
     const match = line.match(/<!--\s*layout\s*:\s*([a-z-]+)\s*-->/i)
     const value = match?.[1]?.toLowerCase()
     if (value && layoutHints.has(value as TeachDrawLayoutHint)) return value as TeachDrawLayoutHint
+    if (value && layoutHintAliases[value]) return layoutHintAliases[value]
   }
   return undefined
 }
 
 function removeFrameLayoutComments(lines: string[]): string[] {
   return lines.filter((line) => !/<!--\s*layout\s*:\s*[a-z-]+\s*-->/i.test(line))
-}
-
-function splitCrowdedFrames(frames: TeachDrawFrame[]): TeachDrawFrame[] {
-  const maxBlocksPerSection = 6
-  const expanded: TeachDrawFrame[] = []
-
-  frames.forEach((frame) => {
-    if (frame.blocks.length <= maxBlocksPerSection + 1) {
-      expanded.push(frame)
-      return
-    }
-
-    const titleBlock = frame.blocks.find((block) => block.kind === 'title')
-    const contentBlocks = frame.blocks.filter((block) => block !== titleBlock)
-    if (contentBlocks.length <= maxBlocksPerSection) {
-      expanded.push(frame)
-      return
-    }
-
-    const chunks = chunkBlocks(contentBlocks, maxBlocksPerSection)
-    chunks.forEach((chunk, index) => {
-      const blocks = index === 0 && titleBlock ? [titleBlock, ...chunk] : chunk
-      expanded.push({
-        ...frame,
-        id: `${frame.id}-part-${index + 1}`,
-        frameTitle: index === 0 ? frame.frameTitle : `${frame.frameTitle} Continued`,
-        blocks,
-      })
-    })
-  })
-
-  return expanded
-}
-
-function chunkBlocks(blocks: TeachDrawBlock[], size: number): TeachDrawBlock[][] {
-  const chunks: TeachDrawBlock[][] = []
-  for (let index = 0; index < blocks.length; index += size) {
-    chunks.push(blocks.slice(index, index + size))
-  }
-  return chunks
 }
 
 function parseFrameBlocks(lines: string[], frameIndex: number) {

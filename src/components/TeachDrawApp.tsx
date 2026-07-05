@@ -12,8 +12,7 @@ import { MarkdownEditorPanel } from './MarkdownEditorPanel'
 import { TldrawCanvasPanel } from './TldrawCanvasPanel'
 
 const defaultOptions: GenerateTeachDrawOptions = {
-  layoutMode: 'vertical-cards',
-  columns: 3,
+  layoutMode: 'horizontal-cards',
   flowOrientation: 'auto',
   spacing: 'comfortable',
   clearBeforeGenerate: true,
@@ -21,19 +20,12 @@ const defaultOptions: GenerateTeachDrawOptions = {
 
 export function TeachDrawApp() {
   const [markdown, setMarkdown] = useState('')
-  const [selectedTemplate, setSelectedTemplate] = useState('')
   const [options, setOptions] = useState<GenerateTeachDrawOptions>(defaultOptions)
   const [editor, setEditor] = useState<Editor | null>(null)
   const [status, setStatus] = useState('Ready.')
   const [isGenerating, setIsGenerating] = useState(false)
 
   const document = useMemo(() => parseTeachDrawMarkdown(markdown), [markdown])
-
-  function handleTemplateSelect(templateId: string, nextMarkdown: string) {
-    setSelectedTemplate(templateId)
-    setMarkdown(nextMarkdown)
-    setStatus('Template loaded.')
-  }
 
   async function handleGenerate() {
     if (isGenerating) return
@@ -85,13 +77,11 @@ export function TeachDrawApp() {
     <main className="flex min-h-screen flex-col bg-slate-100 text-slate-950 lg:h-screen lg:flex-row lg:overflow-hidden">
       <MarkdownEditorPanel
         markdown={markdown}
-        selectedTemplate={selectedTemplate}
         document={document}
         status={status}
         options={options}
         isGenerating={isGenerating}
         onMarkdownChange={setMarkdown}
-        onTemplateSelect={handleTemplateSelect}
         onOptionsChange={setOptions}
         onGenerate={handleGenerate}
         onClear={handleClear}

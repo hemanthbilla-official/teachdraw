@@ -2,17 +2,14 @@ import type { TeachDrawDocument } from '@/types/teachdraw'
 import type { GenerateTeachDrawOptions } from '@/lib/tldraw/generateTeachDrawBoard'
 import { GenerationOptions } from './GenerationOptions'
 import { ParserModeBadge } from './ParserModeBadge'
-import { TemplateButtons } from './TemplateButtons'
 
 type Props = {
   markdown: string
-  selectedTemplate: string
   document: TeachDrawDocument
   status: string
   options: GenerateTeachDrawOptions
   isGenerating: boolean
   onMarkdownChange: (markdown: string) => void
-  onTemplateSelect: (templateId: string, markdown: string) => void
   onOptionsChange: (options: GenerateTeachDrawOptions) => void
   onGenerate: () => void | Promise<void>
   onClear: () => void
@@ -20,13 +17,11 @@ type Props = {
 
 export function MarkdownEditorPanel({
   markdown,
-  selectedTemplate,
   document,
   status,
   options,
   isGenerating,
   onMarkdownChange,
-  onTemplateSelect,
   onOptionsChange,
   onGenerate,
   onClear,
@@ -38,7 +33,6 @@ export function MarkdownEditorPanel({
         <p className="mt-1 text-sm text-slate-600">Markdown to editable tldraw board</p>
       </div>
 
-      <TemplateButtons selectedTemplate={selectedTemplate} onSelect={onTemplateSelect} />
       <ParserModeBadge document={document} />
       <GenerationOptions options={options} onChange={onOptionsChange} />
 
