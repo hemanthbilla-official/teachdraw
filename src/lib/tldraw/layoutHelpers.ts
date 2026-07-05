@@ -1,12 +1,12 @@
 import type { TeachDrawBlock, TeachDrawFrame } from '@/types/teachdraw'
 
 const baseFrameHeaderHeight = 118
-const normalBlockBaseHeight = 120
-const listItemHeight = 30
-const codeLineHeight = 24
-const flowStepHeight = 84
-const blockGap = 28
-const framePadding = 40
+const normalBlockBaseHeight = 150
+const listItemHeight = 36
+const codeLineHeight = 34
+const flowStepHeight = 126
+const blockGap = 42
+const framePadding = 72
 
 export function estimateBlockHeight(block: TeachDrawBlock, contentWidth = 760): number {
   if (block.kind === 'title') return 96
@@ -14,19 +14,19 @@ export function estimateBlockHeight(block: TeachDrawBlock, contentWidth = 760): 
   if (block.kind === 'flow') {
     const steps = Math.max(block.flowSteps.length, 1)
     const horizontal = steps <= 5 && block.flowSteps.every((step) => step.length <= 24)
-    return horizontal ? 150 : 44 + steps * flowStepHeight
+    return horizontal ? 180 : 72 + steps * flowStepHeight
   }
 
   const codeLines = block.codeBlocks.reduce((sum, code) => sum + code.content.split('\n').length + 1, 0)
   if (block.kind === 'code' || block.kind === 'command' || codeLines > 0) {
-    return Math.max(150, 64 + codeLines * codeLineHeight)
+    return Math.max(240, 96 + codeLines * codeLineHeight)
   }
 
   const listCount = Math.max(block.bullets.length, block.numberedItems.length)
   if (listCount > 0) return normalBlockBaseHeight + listCount * listItemHeight
 
   const estimatedLines = Math.ceil((block.text.length || 80) / Math.max(contentWidth / 12, 40))
-  return normalBlockBaseHeight + Math.max(0, estimatedLines - 2) * 24
+  return normalBlockBaseHeight + Math.max(0, estimatedLines - 2) * 32
 }
 
 export function estimateFrameHeight(frame: TeachDrawFrame): number {

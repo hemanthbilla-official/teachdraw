@@ -1,22 +1,21 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { type Editor } from 'tldraw'
-import { teachDrawTemplates } from '@/lib/templates'
 import { parseTeachDrawMarkdown } from '@/lib/markdown/parseTeachDrawMarkdown'
 import {
   clearGeneratedShapes,
   generateTeachDrawBoard,
   type GenerateTeachDrawOptions,
 } from '@/lib/tldraw/generateTeachDrawBoard'
-import { readStorage, STORAGE_KEYS, writeStorage } from '@/lib/storage'
 import { MarkdownEditorPanel } from './MarkdownEditorPanel'
 import { TldrawCanvasPanel } from './TldrawCanvasPanel'
 
 const defaultOptions: GenerateTeachDrawOptions = {
-  layoutMode: 'whiteboard-notes',
+  layoutMode: 'vertical-cards',
   columns: 3,
   flowOrientation: 'auto',
+  spacing: 'comfortable',
   clearBeforeGenerate: true,
 }
 
@@ -30,39 +29,9 @@ export function TeachDrawApp() {
 
   const document = useMemo(() => parseTeachDrawMarkdown(markdown), [markdown])
 
-  useEffect(() => {
-    const storedMarkdown = readStorage(STORAGE_KEYS.markdown)
-    const storedTemplate = readStorage(STORAGE_KEYS.selectedTemplate)
-    const storedLayout = readStorage(STORAGE_KEYS.layout)
-    const storedColumns = Number(readStorage(STORAGE_KEYS.columns)) as GenerateTeachDrawOptions['columns']
-    const storedFlow = readStorage(STORAGE_KEYS.flowOrientation) as GenerateTeachDrawOptions['flowOrientation'] | null
-
-    if (storedMarkdown) setMarkdown(storedMarkdown)
-    if (storedTemplate && teachDrawTemplates.some((template) => template.id === storedTemplate)) {
-      setSelectedTemplate(storedTemplate)
-    }
-    setOptions((current) => ({
-      ...current,
-      layoutMode: normalizeStoredLayoutMode(storedLayout),
-      columns: [2, 3, 4].includes(storedColumns) ? storedColumns : current.columns,
-      flowOrientation: storedFlow === 'vertical' || storedFlow === 'horizontal' || storedFlow === 'auto' ? storedFlow : current.flowOrientation,
-    }))
-  }, [])
-
-  useEffect(() => {
-    writeStorage(STORAGE_KEYS.markdown, markdown)
-  }, [markdown])
-
-  useEffect(() => {
-    writeStorage(STORAGE_KEYS.layout, options.layoutMode)
-    writeStorage(STORAGE_KEYS.columns, String(options.columns))
-    writeStorage(STORAGE_KEYS.flowOrientation, options.flowOrientation)
-  }, [options])
-
   function handleTemplateSelect(templateId: string, nextMarkdown: string) {
     setSelectedTemplate(templateId)
     setMarkdown(nextMarkdown)
-    writeStorage(STORAGE_KEYS.selectedTemplate, templateId)
     setStatus('Template loaded.')
   }
 
@@ -140,9 +109,3 @@ function waitForPaint(): Promise<void> {
   })
 }
 
-function normalizeStoredLayoutMode(value: string | null): GenerateTeachDrawOptions['layoutMode'] {
-  if (value === 'frame-grid' || value === 'whiteboard-notes' || value === 'vertical-cards') return value
-  if (value === 'grid') return 'frame-grid'
-  if (value === 'vertical') return 'vertical-cards'
-  return 'whiteboard-notes'
-}

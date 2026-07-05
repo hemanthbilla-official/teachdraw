@@ -7,7 +7,7 @@ type Props = {
 
 export function GenerationOptions({ options, onChange }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <label className="text-sm text-slate-700">
         <span className="mb-1 block font-medium">Canvas Style</span>
         <select
@@ -15,9 +15,24 @@ export function GenerationOptions({ options, onChange }: Props) {
           value={options.layoutMode}
           onChange={(event) => onChange({ ...options, layoutMode: event.target.value as GenerateTeachDrawOptions['layoutMode'] })}
         >
-          <option value="whiteboard-notes">Whiteboard Notes</option>
-          <option value="frame-grid">Frame Grid</option>
           <option value="vertical-cards">Vertical Cards</option>
+          <option value="horizontal-cards">Horizontal Cards</option>
+          <option value="frame-grid">Frame Grid</option>
+        </select>
+      </label>
+
+      <label className="text-sm text-slate-700">
+        <span className="mb-1 block font-medium">Spacing</span>
+        <select
+          className="w-full rounded-md border border-slate-300 bg-white px-2 py-2"
+          value={options.spacing}
+          onChange={(event) => onChange({ ...options, spacing: event.target.value as GenerateTeachDrawOptions['spacing'] })}
+        >
+          <option value="spacious">Spacious</option>
+          <option value="comfortable">Comfortable</option>
+          <option value="compact">Compact</option>
+          <option value="extra-compact">Extra Compact</option>
+          <option value="extreme-compact">Extreme Compact</option>
         </select>
       </label>
 

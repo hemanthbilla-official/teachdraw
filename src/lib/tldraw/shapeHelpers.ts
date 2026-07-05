@@ -94,6 +94,7 @@ export function createGeoCard(args: {
   w: number
   h: number
   text: string
+  geo?: 'rectangle' | 'diamond'
   parentId?: TLShape['id']
   color?: TLDefaultColorStyle
   labelColor?: TLDefaultColorStyle
@@ -112,7 +113,7 @@ export function createGeoCard(args: {
     x: args.x,
     y: args.y,
     props: {
-      geo: 'rectangle',
+      geo: args.geo ?? 'rectangle',
       w: args.w,
       h: args.h,
       dash: 'solid',

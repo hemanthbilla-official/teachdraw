@@ -30,6 +30,49 @@ export function stripMarkdownMarkers(input: string): string {
     .trim()
 }
 
+export function cleanBoardTitle(rawTitle: string): string {
+  return rawTitle
+    .replace(/^#*\s*/g, '')
+    .replace(/^tldraw\s+script\s*:\s*/i, '')
+    .replace(/^tldraw\s+content\s*:\s*/i, '')
+    .replace(/^script\s*:\s*/i, '')
+    .replace(/^content\s*:\s*/i, '')
+    .replace(/\*\*/g, '')
+    .trim()
+}
+
+export function cleanCodeContent(language: string | undefined, content: string): string {
+  const lang = language?.trim().toLowerCase()
+  if (!lang) return content.trim()
+
+  const lines = content.replace(/\r\n/g, '\n').split('\n')
+  const firstLine = lines[0]?.trim().toLowerCase()
+  const languageAliases: Record<string, string[]> = {
+    css: ['css'],
+    html: ['html'],
+    javascript: ['javascript', 'js'],
+    js: ['javascript', 'js'],
+    typescript: ['typescript', 'ts'],
+    ts: ['typescript', 'ts'],
+    python: ['python', 'py'],
+    py: ['python', 'py'],
+    json: ['json'],
+    bash: ['bash', 'shell', 'sh'],
+    shell: ['bash', 'shell', 'sh'],
+    powershell: ['powershell', 'ps1'],
+    cmd: ['cmd'],
+    sql: ['sql'],
+    text: ['text'],
+  }
+  const aliases = languageAliases[lang] ?? [lang]
+
+  if (firstLine && aliases.includes(firstLine)) {
+    return lines.slice(1).join('\n').trim()
+  }
+
+  return content.trim()
+}
+
 export function slugId(prefix: string, index: number, label: string): string {
   const slug = label
     .toLowerCase()
@@ -46,6 +89,16 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
   if (h.includes('title')) return 'title'
 
   if (
+    h.includes('before code') ||
+    h.includes('after code') ||
+    h.includes('code meaning') ||
+    h.includes('meaning of code') ||
+    h.includes('code explanation')
+  ) {
+    return 'normal'
+  }
+
+  if (
     h.includes('flow') ||
     h.includes('mental model') ||
     h.includes('setup flow') ||
@@ -53,7 +106,11 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
     h.includes('full stack flow') ||
     h.includes('final concept flow') ||
     h.includes('project view') ||
-    h.includes('mapping')
+    h.includes('mapping') ||
+    h.includes('decision') ||
+    h.includes('condition') ||
+    h.includes('branch') ||
+    h.includes('if')
   ) {
     return 'flow'
   }
@@ -91,6 +148,7 @@ export function extractCodeBlocks(raw: string): { textWithoutCode: string; codeB
   const codeBlocks: TeachDrawCodeBlock[] = []
   let inFence = false
   let language = ''
+  let label: string | undefined
   let codeLines: string[] = []
 
   for (const line of lines) {
@@ -99,14 +157,16 @@ export function extractCodeBlocks(raw: string): { textWithoutCode: string; codeB
     if (fence && !inFence) {
       inFence = true
       language = fence[1]?.trim()
+      label = takeTrailingCodeLabel(textLines)
       codeLines = []
       continue
     }
 
     if (line.trim() === '```' && inFence) {
-      codeBlocks.push({ language: language || undefined, content: codeLines.join('\n') })
+      codeBlocks.push({ language: language || undefined, label, content: cleanCodeContent(language || undefined, codeLines.join('\n')) })
       inFence = false
       language = ''
+      label = undefined
       codeLines = []
       continue
     }
@@ -119,10 +179,33 @@ export function extractCodeBlocks(raw: string): { textWithoutCode: string; codeB
   }
 
   if (inFence && codeLines.length > 0) {
-    codeBlocks.push({ language: language || undefined, content: codeLines.join('\n') })
+    codeBlocks.push({ language: language || undefined, label, content: cleanCodeContent(language || undefined, codeLines.join('\n')) })
   }
 
   return { textWithoutCode: textLines.join('\n'), codeBlocks }
+}
+
+function takeTrailingCodeLabel(textLines: string[]): string | undefined {
+  let index = textLines.length - 1
+  while (index >= 0 && !textLines[index].trim()) index -= 1
+
+  if (index < 0) return undefined
+
+  const candidate = stripMarkdownMarkers(textLines[index]).trim()
+  if (!isCodeFenceLabel(candidate)) return undefined
+
+  textLines.splice(index, 1)
+  while (textLines.length > 0 && !textLines[textLines.length - 1].trim()) {
+    textLines.pop()
+  }
+
+  return candidate
+}
+
+function isCodeFenceLabel(value: string): boolean {
+  if (!/:\s*$/.test(value)) return false
+  if (value.length > 80) return false
+  return /^[A-Za-z][A-Za-z0-9 /`?()._-]*:\s*$/.test(value)
 }
 
 export function parseBullets(text: string): string[] {
@@ -205,6 +288,20 @@ export function parseBlock(id: string, heading: string, rawContent: string, kind
   const bullets = parseBullets(textWithoutCode)
   const numberedItems = parseNumberedItems(textWithoutCode)
   const kind = kindOverride ?? detectBlockKind(heading)
+
+  if (kind === 'compare') {
+    return {
+      id,
+      heading: stripMarkdownMarkers(heading),
+      kind,
+      text: normalizeComparisonText(textWithoutCode),
+      bullets: [],
+      numberedItems: [],
+      codeBlocks,
+      flowSteps: [],
+    }
+  }
+
   const meaningfulLines = getMeaningfulLines(textWithoutCode)
   const shouldUseUnbulleted = kind !== 'flow' && bullets.length === 0 && shouldTreatAsUnbulletedList(heading, meaningfulLines)
   const finalBullets = shouldUseUnbulleted ? meaningfulLines : bullets
@@ -224,14 +321,21 @@ export function parseBlock(id: string, heading: string, rawContent: string, kind
   }
 }
 
+function normalizeComparisonText(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => stripMarkdownMarkers(line).replace(/^\s*[-*]\s+/, '- ').trimEnd())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 export function parseBoardTitle(markdownBeforeFrames: string): { rawTitle: string; boardTitle?: string; boardSubtitle?: string } {
   const lines = markdownBeforeFrames.split('\n')
-  const rawTitle =
-    lines
-      .map((line) => line.match(/^#\s+(.+)$/)?.[1])
-      .find((title) => title && !/^Frame\s+\d+\s*:/i.test(title))
-      ?.replace(/^TLDRAW CONTENT:\s*/i, '')
-      .trim() || 'Untitled Lesson'
+  const firstHeading = lines
+    .map((line) => line.match(/^#\s+(.+)$/)?.[1])
+    .find((title) => title && !/^Frame\s+\d+\s*:/i.test(title))
+  const rawTitle = firstHeading ? cleanBoardTitle(firstHeading) || 'Untitled Lesson' : 'Untitled Lesson'
 
   const boardTitleIndex = lines.findIndex((line) => /^##\s+Board Title\s*$/i.test(line.trim()))
   if (boardTitleIndex === -1) return { rawTitle }
@@ -251,7 +355,7 @@ export function parseBoardTitle(markdownBeforeFrames: string): { rawTitle: strin
     }
 
     if (!boardTitle && !readSubtitle) {
-      boardTitle = stripMarkdownMarkers(trimmed)
+      boardTitle = cleanBoardTitle(trimmed)
       continue
     }
 

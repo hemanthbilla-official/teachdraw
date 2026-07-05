@@ -6,10 +6,20 @@ export type TeachDrawDocument = {
   frames: TeachDrawFrame[]
 }
 
+export type TeachDrawLayoutHint =
+  | 'concept-focus'
+  | 'code-focus'
+  | 'flow-focus'
+  | 'mistake-fix'
+  | 'practice-grid'
+  | 'comparison'
+  | 'recap'
+
 export type TeachDrawFrame = {
   id: string
   frameNumber?: number
   frameTitle: string
+  layoutHint?: TeachDrawLayoutHint
   blocks: TeachDrawBlock[]
 }
 
@@ -40,5 +50,6 @@ export type TeachDrawBlock = {
 
 export type TeachDrawCodeBlock = {
   language?: string
+  label?: string
   content: string
 }
