@@ -58,7 +58,7 @@ export function renderCodeBlockStack(
         meta,
       })
     )
-    cursorY += h + (index < codeUnits.length - 1 ? 22 : 0)
+    cursorY += h + (index < codeUnits.length - 1 ? 28 : 0)
   })
 
   return Math.max(0, cursorY - y)

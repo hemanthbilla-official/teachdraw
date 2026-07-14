@@ -25,7 +25,7 @@ export function renderTextCard(
     paddingX: 30,
     paddingY: 26,
     lineHeight: 30,
-    minimum: 104,
+    minimum: 112,
   })
 
   shapes.push(
@@ -63,14 +63,14 @@ export function renderCalloutCard(
   const text = [label, body].filter(Boolean).join('\n\n')
   if (!text) return 0
 
-  const stripeW = 14
+  const stripeW = 16
   const color = getCalloutColor(block)
   const fillColor = block.kind === 'keyPoint' || block.kind === 'memory' ? 'yellow' : color
   const h = estimateTextCardHeight(text, w - stripeW, {
     paddingX: 30,
     paddingY: 26,
     lineHeight: 31,
-    minimum: 110,
+    minimum: 118,
   })
 
   shapes.push(

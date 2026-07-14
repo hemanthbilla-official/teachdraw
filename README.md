@@ -8,23 +8,21 @@ There is no AI integration inside the app, no API key handling, no backend gener
 
 ## Current UI
 
-- Markdown textarea
-- Parser mode and board health indicator
-- Fixed, stable Vertical Cards layout
-- Automatic flow direction by default, with Vertical and Horizontal overrides
-- Generate Board button
-- Clear Board button
-- Download Board button
+- Automatic chapter inference from lesson titles and block semantics
+- Single-path lesson board with chapter dividers and frame progress markers
+- Adaptive concept, practice, recap, code, comparison, flow, and mistake/fix layouts
+- Automatic flow direction with Vertical and Horizontal overrides
+- Local draft persistence, editable native tldraw shapes, and `.tldr` export
 
-The workspace uses one predictable classroom layout: Vertical Cards. Spacing is tuned and fixed by the renderer; only flow direction is configurable.
+The workspace treats the input as lesson knowledge rather than a rigid visual template. It creates a clear teaching path while preserving the authored frame order and code.
 
 ## Board Layout
 
-### Vertical Cards
+### Chaptered Storyboard
 
-Frames are stacked vertically. Blocks render one after another with content-based height.
+Frames are grouped into generic teaching chapters: Context, Foundation, Build, Verify, Debug, Practice, and Recap. The complete lesson follows one uninterrupted top-to-bottom reading order.
 
-Comparison frames render as unified two- or three-column panels with title bands, source labels, explanatory text, and code kept inside the relevant column. Mistake/fix, callout, image, and code blocks use the same fixed vertical rhythm.
+Short concept, practice, and recap blocks form balanced card grids. Comparison frames render as unified two- or three-column panels. Code, flow, decision, mistake/fix, callout, and image blocks keep their specialized renderers and content-based height.
 
 ## Markdown Format
 
@@ -214,6 +212,7 @@ src/
         measurements.ts
         mistakeFixRenderer.ts
         palette.ts
+        storyboard.ts
         textCardRenderers.ts
         types.ts
       layoutHelpers.ts

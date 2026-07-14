@@ -28,7 +28,7 @@ export function renderSmallHeading(
       x,
       y: y + 34,
       w: Math.min(260, Math.max(96, heading.length * 9)),
-      h: 5,
+      h: 7,
       text: '',
       parentId,
       color,
@@ -37,7 +37,7 @@ export function renderSmallHeading(
     })
   )
 
-  return 54
+  return 58
 }
 
 export function renderCodeLabel(

@@ -6,8 +6,8 @@ import { buildTextCardText, stripMarkdownMarkers } from './content'
 import { estimateCodeHeight, estimateTextCardHeight, shouldBoldFirstLine } from './measurements'
 import type { ComparisonColumn, DrawColor, GeneratedMeta } from './types'
 
-const HEADER_HEIGHT = 66
-const PANEL_PADDING = 24
+const HEADER_HEIGHT = 72
+const PANEL_PADDING = 28
 const CONTENT_GAP = 16
 const SOURCE_LABEL_HEIGHT = 52
 const CODE_LABEL_HEIGHT = 40
@@ -75,8 +75,8 @@ export function renderComparisonBlock(
         h: 40,
         text: 'VS',
         parentId,
-        color: 'violet',
-        labelColor: 'violet',
+        color: 'red',
+        labelColor: 'red',
         fill: 'solid',
         size: 's',
         align: 'middle',

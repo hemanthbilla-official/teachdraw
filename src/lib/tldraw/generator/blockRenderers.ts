@@ -38,7 +38,7 @@ export function renderAnyBlock(
   if (isCodeVisualBlock(block)) {
     let cursorY = y
     if (hasNonCodeText(block)) {
-      const textHeight = renderTextCard(shapes, block, parentId, x, cursorY, w, frameMeta, { colorOverride: 'blue' })
+      const textHeight = renderTextCard(shapes, block, parentId, x, cursorY, w, frameMeta)
       cursorY += textHeight + layout.smallGap
     }
     const codeHeight = renderCodeBlockStack(shapes, block, parentId, x, cursorY, w, frameMeta, {

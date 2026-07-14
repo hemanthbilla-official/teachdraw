@@ -10,9 +10,10 @@ export function getTextColor(block: TeachDrawBlock): DrawColor {
       return 'green'
     case 'example':
     case 'explanation':
-    case 'request':
     case 'response':
       return 'blue'
+    case 'request':
+      return 'orange'
     case 'mistake':
     case 'warning':
       return 'red'
@@ -21,23 +22,25 @@ export function getTextColor(block: TeachDrawBlock): DrawColor {
     case 'task':
     case 'practice':
     case 'assignment':
-      return 'green'
+      return 'violet'
     case 'recap':
-      return 'grey'
+      return 'orange'
     case 'important':
     case 'keyPoint':
     case 'memory':
       return 'orange'
     default:
-      return 'blue'
+      return 'grey'
   }
 }
 
 export function getCodeColor(block: TeachDrawBlock): DrawColor {
   if (block.kind === 'command' || isCommandBlock(block)) return 'green'
+  if (block.kind === 'request') return 'orange'
+  if (block.kind === 'response') return 'blue'
   if (isMistakeBlock(block)) return 'red'
   if (isCorrectBlock(block)) return 'green'
-  return 'violet'
+  return 'blue'
 }
 
 export function getCalloutColor(block: TeachDrawBlock): DrawColor {
@@ -47,9 +50,9 @@ export function getCalloutColor(block: TeachDrawBlock): DrawColor {
     case 'task':
     case 'practice':
     case 'assignment':
-      return 'green'
+      return 'violet'
     case 'recap':
-      return 'grey'
+      return 'orange'
     case 'memory':
     case 'important':
     case 'keyPoint':
@@ -76,20 +79,24 @@ export function getMistakeFixBodyHeading(block: TeachDrawBlock, panelLabel: 'Mis
 }
 
 export function getFlowStepColor(index: number, total: number): DrawColor {
-  if (index === 0) return 'green'
-  if (index === total - 1) return 'orange'
+  if (index === 0) return 'grey'
+  if (index === total - 1) return 'green'
   return 'blue'
 }
 
-export function pickFrameColor(index: number, frame?: TeachDrawFrame): DrawColor {
+export function pickFrameColor(_index: number, frame?: TeachDrawFrame): DrawColor {
   const layout = frame ? pickContentLayout(frame.blocks, frame.layoutHint) : undefined
-  if (layout === 'code-focus') return 'violet'
+  if (frame?.blocks.some((block) => block.kind === 'mistake' || block.kind === 'warning')) return 'red'
+  if (frame?.blocks.some((block) => block.kind === 'request')) return 'orange'
+  if (frame?.blocks.some((block) => block.kind === 'command')) return 'green'
+  if (layout === 'code-focus') return 'blue'
   if (layout === 'flow-focus') return 'blue'
   if (layout === 'mistake-fix') return 'red'
   if (layout === 'comparison') return 'orange'
-  if (layout === 'practice-grid') return 'green'
-  if (layout === 'recap') return 'grey'
+  if (layout === 'practice-grid') return 'violet'
+  if (layout === 'recap') return 'orange'
 
-  const colors: DrawColor[] = ['blue', 'green', 'orange', 'violet']
-  return colors[index % colors.length]
+  if (frame?.blocks.some((block) => block.kind === 'definition' || block.kind === 'meaning')) return 'green'
+  if (frame?.blocks.some((block) => block.kind === 'important' || block.kind === 'keyPoint' || block.kind === 'memory')) return 'orange'
+  return 'blue'
 }

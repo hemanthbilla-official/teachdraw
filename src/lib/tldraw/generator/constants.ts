@@ -6,22 +6,32 @@ export const defaultOptions: GenerateTeachDrawOptions = {
 
 export const BOARD_X = 100
 export const BOARD_Y = 80
-export const FRAME_START_GAP = 120
+export const FRAME_START_GAP = 112
+export const CHAPTER_GAP = 196
+export const CHAPTER_HEADER_H = 132
+export const CHAPTER_HEADER_GAP = 72
+
+export const FRAME_BADGE_W = 96
+export const FRAME_BADGE_H = 42
+export const FRAME_BADGE_MARGIN = 18
+
+export const BOARD_SEPARATOR_H = 6
+export const BOARD_SEPARATOR_GAP = 32
 
 export const CODE_TEXT_SIZE = 'l'
 export const CODE_LINE_HEIGHT = 34
 export const CODE_PADDING_Y = 34
 
 export const verticalCardLayout: Omit<BoardLayout, 'contentWidth'> = {
-  frameWidth: 1280,
-  frameGapY: 124,
-  paddingX: 58,
-  paddingY: 52,
-  titleGap: 112,
-  blockGap: 38,
+  frameWidth: 1400,
+  frameGapY: 112,
+  paddingX: 64,
+  paddingY: 58,
+  titleGap: 124,
+  blockGap: 44,
   smallGap: 24,
   columnGap: 56,
-  minFrameHeight: 360,
+  minFrameHeight: 400,
   cameraZoom: 0.54,
 }
 

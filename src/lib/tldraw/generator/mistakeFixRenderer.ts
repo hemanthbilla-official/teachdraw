@@ -9,9 +9,9 @@ import { renderSmallHeading } from './headingRenderers'
 import { estimateTextCardHeight } from './measurements'
 import type { FlowOrientation, GeneratedMeta } from './types'
 
-const PANEL_HEADER_HEIGHT = 62
-const PANEL_PADDING = 24
-const PANEL_GAP = 52
+const PANEL_HEADER_HEIGHT = 68
+const PANEL_PADDING = 28
+const PANEL_GAP = 60
 const CONTENT_GAP = 18
 
 type PanelSpec = {
