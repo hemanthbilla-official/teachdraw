@@ -1,14 +1,9 @@
-export type LayoutMode = 'horizontal-cards' | 'vertical-cards' | 'whiteboard-map'
-
-export type SpacingPreset = 'comfortable' | 'compact' | 'extra-compact' | 'extreme-compact'
+import type { TeachDrawBlock, TeachDrawCodeBlock } from '@/types/teachdraw'
 
 export type FlowOrientation = 'auto' | 'vertical' | 'horizontal'
 
 export type GenerateTeachDrawOptions = {
-  layoutMode: LayoutMode
   flowOrientation: FlowOrientation
-  spacing: SpacingPreset
-  clearBeforeGenerate: boolean
 }
 
 export type GeneratedMeta = {
@@ -21,7 +16,6 @@ export type GeneratedMeta = {
 export type DrawColor = 'black' | 'blue' | 'green' | 'orange' | 'red' | 'violet' | 'yellow' | 'grey'
 
 export type BoardLayout = {
-  mode: LayoutMode
   frameWidth: number
   frameGapY: number
   paddingX: number
@@ -35,16 +29,16 @@ export type BoardLayout = {
   cameraZoom: number
 }
 
-export type HorizontalLanes = {
-  supportX: number
-  supportW: number
-  visualX: number
-  visualW: number
-}
-
 export type ComparisonColumn = {
   title: string
+  sourceLabel?: string
   body: string
+  codeBlocks: TeachDrawCodeBlock[]
+}
+
+export type ComparisonRenderBlock = TeachDrawBlock & {
+  renderKind: 'comparison'
+  columns: ComparisonColumn[]
 }
 
 export type RenderBlockOptions = {

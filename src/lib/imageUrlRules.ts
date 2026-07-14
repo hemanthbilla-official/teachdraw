@@ -14,7 +14,7 @@ const likelyImageHostPatterns = [
   /^media\./,
 ]
 
-export type ImageUrlIssue = 'invalid' | 'search-or-page' | 'thumbnail-proxy' | 'not-direct-looking'
+export type ImageUrlIssue = 'invalid' | 'search-or-page' | 'thumbnail-proxy' | 'not-direct-looking' | 'insecure-http'
 
 export function isRemoteImageUrl(url: string): boolean {
   const parsed = parseHttpUrl(url)
@@ -31,7 +31,8 @@ export function isLikelyDirectImageUrl(url: string): boolean {
   const parsed = parseHttpUrl(url)
   if (!parsed) return false
 
-  return hasDirectImageExtension(url) || isLikelyImageHost(parsed.hostname)
+  const optimizedSource = parsed.searchParams.get('url')
+  return hasDirectImageExtension(url) || Boolean(optimizedSource && hasImagePathExtension(optimizedSource)) || isLikelyImageHost(parsed.hostname)
 }
 
 export function getImageUrlIssue(url: string): ImageUrlIssue | undefined {
@@ -40,7 +41,16 @@ export function getImageUrlIssue(url: string): ImageUrlIssue | undefined {
   if (looksLikeSearchOrPageUrl(parsed)) return 'search-or-page'
   if (looksLikeThumbnailProxyUrl(parsed)) return 'thumbnail-proxy'
   if (!isLikelyDirectImageUrl(url)) return 'not-direct-looking'
+  if (parsed.protocol === 'http:') return 'insecure-http'
   return undefined
+}
+
+function hasImagePathExtension(value: string): boolean {
+  try {
+    return directImageExtensionRegex.test(decodeURIComponent(value).split(/[?#]/)[0] ?? '')
+  } catch {
+    return directImageExtensionRegex.test(value.split(/[?#]/)[0] ?? '')
+  }
 }
 
 function parseHttpUrl(raw: string): URL | undefined {

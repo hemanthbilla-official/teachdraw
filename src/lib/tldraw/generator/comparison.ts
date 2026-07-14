@@ -1,8 +1,11 @@
 import type { TeachDrawBlock } from '@/types/teachdraw'
 import { cleanBlockHeading, normalizeHeading, stripMarkdownMarkers } from './content'
-import type { ComparisonColumn } from './types'
+import type { ComparisonColumn, ComparisonRenderBlock } from './types'
 
 export function getComparisonColumns(block: TeachDrawBlock): ComparisonColumn[] {
+  const renderBlock = block as Partial<ComparisonRenderBlock>
+  if (renderBlock.renderKind === 'comparison' && renderBlock.columns) return renderBlock.columns
+
   const text = buildComparisonSourceText(block)
   const explicit = splitComparisonByStandaloneVs(text)
   if (explicit.length >= 2) return explicit.map(comparisonPartToColumn)
@@ -25,7 +28,7 @@ export function getComparisonColumns(block: TeachDrawBlock): ComparisonColumn[] 
     const sectionsByTitle = titleColumns.map((title) => {
       const matching = bodyLines.filter((line) => line.toLowerCase().startsWith(`${title.toLowerCase()}:`))
       const body = matching.map((line) => line.replace(new RegExp(`^${escapeRegExp(title)}:\\s*`, 'i'), '')).join('\n')
-      return { title, body }
+      return { title, body, codeBlocks: [] }
     })
 
     if (sectionsByTitle.some((column) => column.body)) return sectionsByTitle
@@ -33,9 +36,9 @@ export function getComparisonColumns(block: TeachDrawBlock): ComparisonColumn[] 
       const textLines = text.split('\n').map((line) => line.trim()).filter(Boolean)
       const firstLineIsTitleList = textLines.length > 0 && splitInlineVs(textLines[0]).length >= 2
       const remainingBody = firstLineIsTitleList ? textLines.slice(1).join('\n') : text
-      return titleColumns.map((title, index) => ({ title, body: index === 0 ? remainingBody : '' }))
+      return titleColumns.map((title, index) => ({ title, body: index === 0 ? remainingBody : '', codeBlocks: [] }))
     }
-    return titleColumns.map((title) => ({ title, body: '' }))
+    return titleColumns.map((title) => ({ title, body: '', codeBlocks: [] }))
   }
 
   return []
@@ -49,7 +52,7 @@ function splitComparisonByMarkdownHeadings(text: string): ComparisonColumn[] {
     const match = line.trim().match(/^#{3,6}\s+(.+)$/)
     if (match) {
       if (current) sections.push(current)
-      current = { title: stripMarkdownMarkers(match[1]), body: '' }
+      current = { title: stripMarkdownMarkers(match[1]), body: '', codeBlocks: [] }
       return
     }
 
@@ -71,7 +74,7 @@ export function getComparisonTitleCandidates(block: TeachDrawBlock): string[] {
   const textTitles = firstTextLine ? splitInlineVs(firstTextLine) : []
   if (textTitles.length >= 2) return textTitles
 
-  return splitInlineVs(cleanBlockHeading(block.heading))
+  return splitInlineVs(cleanBlockHeading(block.heading).replace(/^compare\s*:\s*/i, ''))
 }
 
 function buildComparisonSourceText(block: TeachDrawBlock): string {
@@ -102,8 +105,8 @@ function comparisonPartToColumn(part: string): ComparisonColumn {
   const lines = part.split('\n').map((line) => line.trim()).filter(Boolean)
   const first = lines[0] ?? ''
   const firstIsTitle = first.length <= 60 && !first.startsWith('- ') && !/^\d+[.)]\s+/.test(first)
-  if (!firstIsTitle) return { title: '', body: lines.join('\n') }
-  return { title: first.replace(/:$/, ''), body: lines.slice(1).join('\n') }
+  if (!firstIsTitle) return { title: '', body: lines.join('\n'), codeBlocks: [] }
+  return { title: first.replace(/:$/, ''), body: lines.slice(1).join('\n'), codeBlocks: [] }
 }
 
 function splitComparisonBySectionLabels(text: string): ComparisonColumn[] {
@@ -116,7 +119,7 @@ function splitComparisonBySectionLabels(text: string): ComparisonColumn[] {
     const match = trimmed.match(/^([A-Za-z][A-Za-z0-9 /+()._-]{1,48}):$/)
     if (match) {
       if (current) sections.push(current)
-      current = { title: match[1], body: '' }
+      current = { title: match[1], body: '', codeBlocks: [] }
       return
     }
 
@@ -139,7 +142,7 @@ function splitComparisonByKnownTitles(text: string, titles: string[]): Compariso
 
     if (title) {
       if (current) sections.push(current)
-      current = { title, body: '' }
+      current = { title, body: '', codeBlocks: [] }
       return
     }
 

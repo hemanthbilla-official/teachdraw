@@ -40,7 +40,7 @@ export function renderCodeBlockStack(
     }
 
     const codeText = cleanCodeContent(code.language, code.content)
-    const h = estimateCodeHeight(codeText)
+    const h = estimateCodeHeight(codeText, w)
     shapes.push(
       createGeoCard({
         x,

@@ -1,7 +1,12 @@
 import { CODE_LINE_HEIGHT, CODE_PADDING_Y } from './constants'
 
-export function estimateCodeHeight(code: string): number {
-  const lines = Math.max(1, code.split('\n').length)
+export function estimateCodeHeight(code: string, width = 1_000): number {
+  const usableWidth = Math.max(140, width - 68)
+  const charactersPerLine = Math.max(12, Math.floor(usableWidth / 17))
+  const lines = Math.max(
+    1,
+    code.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(line.replace(/\t/g, '    ').length / charactersPerLine)), 0)
+  )
   const naturalHeight = lines * CODE_LINE_HEIGHT + CODE_PADDING_Y * 2
   const compactMinimum = lines === 1 ? 102 : lines <= 2 ? 126 : lines <= 5 ? 150 : 190
   return Math.max(compactMinimum, naturalHeight)

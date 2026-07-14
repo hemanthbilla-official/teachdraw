@@ -8,19 +8,42 @@ import { resolveDocumentImageInfo } from './generator/imageRenderer'
 import { getBoardLayout, setFrameHeight } from './generator/layout'
 import { estimateTextCardHeight } from './generator/measurements'
 import { pickFrameColor } from './generator/palette'
-import { renderWhiteboardFrameContent } from './generator/whiteboardRenderer'
 import type { GenerateTeachDrawOptions } from './generator/types'
-export type { GenerateTeachDrawOptions, LayoutMode, SpacingPreset } from './generator/types'
+export type { FlowOrientation, GenerateTeachDrawOptions } from './generator/types'
+
+export type TeachDrawRenderPlan = {
+  assets: AssetPartial[]
+  shapes: ShapePartial[]
+  frameCount: number
+  cameraZoom: number
+}
+
+export type TeachDrawGenerationSummary = {
+  shapeCount: number
+  assetCount: number
+  frameCount: number
+}
+
+type CleanupSummary = {
+  shapeCount: number
+  assetCount: number
+}
 
 export async function generateTeachDrawBoard(
   editor: Editor,
   document: TeachDrawDocument,
   options?: Partial<GenerateTeachDrawOptions>
-): Promise<void> {
-  const opts = { ...defaultOptions, ...options }
-  if (opts.clearBeforeGenerate) clearGeneratedShapes(editor)
+): Promise<TeachDrawGenerationSummary> {
+  const plan = await buildTeachDrawRenderPlan(document, options)
+  return commitTeachDrawBoard(editor, plan)
+}
 
-  const layout = getBoardLayout(opts.layoutMode, opts.spacing)
+export async function buildTeachDrawRenderPlan(
+  document: TeachDrawDocument,
+  options?: Partial<GenerateTeachDrawOptions>
+): Promise<TeachDrawRenderPlan> {
+  const opts = { ...defaultOptions, ...options }
+  const layout = getBoardLayout()
   const imageInfo = await resolveDocumentImageInfo(document)
   const assets: AssetPartial[] = []
   const shapes: ShapePartial[] = []
@@ -42,10 +65,7 @@ export async function generateTeachDrawBoard(
       meta: frameMeta,
     })
     const parentId = frameShape.id as TLShape['id']
-    const contentHeight =
-      opts.layoutMode === 'whiteboard-map'
-        ? renderWhiteboardFrameContent(frameShapes, assets, frame, parentId, layout, opts, index, imageInfo)
-        : renderFrameContent(frameShapes, assets, frame, parentId, layout, opts, index, imageInfo)
+    const contentHeight = renderFrameContent(frameShapes, assets, frame, parentId, layout, opts, index, imageInfo)
     const frameHeight = Math.max(layout.minFrameHeight, Math.ceil(contentHeight + layout.paddingY))
 
     setFrameHeight(frameShape, frameHeight)
@@ -53,31 +73,83 @@ export async function generateTeachDrawBoard(
     cursorY += frameHeight + layout.frameGapY
   })
 
-  if (assets.length > 0) editor.createAssets(assets)
-  editor.createShapes(shapes)
-  if (shapes.length > 0) {
-    editor.setCamera({ x: -60, y: -40, z: layout.cameraZoom }, { animation: { duration: 260 } })
+  return {
+    assets,
+    shapes,
+    frameCount: document.frames.length,
+    cameraZoom: layout.cameraZoom,
   }
 }
 
-export function clearGeneratedShapes(editor: Editor): void {
+export function commitTeachDrawBoard(editor: Editor, plan: TeachDrawRenderPlan): TeachDrawGenerationSummary {
+  const previousSnapshot = editor.getSnapshot()
+  const beforeMark = editor.markHistoryStoppingPoint('teachdraw-before-generation')
+
+  try {
+    editor.run(
+      () => {
+        performGeneratedCleanup(editor)
+        if (plan.assets.length > 0) editor.createAssets(plan.assets)
+        if (plan.shapes.length > 0) editor.createShapes(plan.shapes)
+      },
+      { history: 'record' }
+    )
+    editor.markHistoryStoppingPoint('teachdraw-after-generation')
+
+    if (plan.shapes.length > 0) {
+      editor.setCamera({ x: -60, y: -40, z: plan.cameraZoom }, { animation: { duration: 260 } })
+    }
+  } catch (error) {
+    editor.bailToMark(beforeMark)
+    editor.loadSnapshot(previousSnapshot)
+    throw error
+  }
+
+  return {
+    shapeCount: plan.shapes.length,
+    assetCount: plan.assets.length,
+    frameCount: plan.frameCount,
+  }
+}
+
+export function clearGeneratedShapes(editor: Editor): CleanupSummary {
+  let summary: CleanupSummary = { shapeCount: 0, assetCount: 0 }
+  editor.run(
+    () => {
+      summary = performGeneratedCleanup(editor)
+    },
+    { history: 'record' }
+  )
+  return summary
+}
+
+function performGeneratedCleanup(editor: Editor): CleanupSummary {
   const generatedShapeIds = editor
     .getCurrentPageShapes()
     .filter((shape) => shape.meta?.teachDrawGenerated === true)
     .map((shape) => shape.id)
+  const deletingShapeIds = new Set<string>(generatedShapeIds)
+  const referencedAssetIds = new Set<string>()
 
-  if (generatedShapeIds.length > 0) {
-    editor.deleteShapes(generatedShapeIds)
-  }
+  editor.store.allRecords().forEach((record) => {
+    const candidate = record as unknown as {
+      id?: string
+      typeName?: string
+      props?: { assetId?: unknown }
+    }
+    if (candidate.typeName !== 'shape' || (candidate.id && deletingShapeIds.has(candidate.id))) return
+    if (typeof candidate.props?.assetId === 'string') referencedAssetIds.add(candidate.props.assetId)
+  })
 
   const generatedAssetIds = editor
     .getAssets()
-    .filter((asset) => asset.meta?.teachDrawGenerated === true)
+    .filter((asset) => asset.meta?.teachDrawGenerated === true && !referencedAssetIds.has(asset.id))
     .map((asset) => asset.id)
 
-  if (generatedAssetIds.length > 0) {
-    editor.deleteAssets(generatedAssetIds)
-  }
+  if (generatedShapeIds.length > 0) editor.deleteShapes(generatedShapeIds)
+  if (generatedAssetIds.length > 0) editor.deleteAssets(generatedAssetIds)
+
+  return { shapeCount: generatedShapeIds.length, assetCount: generatedAssetIds.length }
 }
 
 function createBoardTitle(shapes: ShapePartial[], document: TeachDrawDocument, frameWidth: number): number {

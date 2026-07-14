@@ -1,29 +1,11 @@
 import type { ShapePartial } from '../shapeHelpers'
-import { spacingConfig } from './constants'
-import type { BoardLayout, LayoutMode, SpacingPreset } from './types'
+import { verticalCardLayout } from './constants'
+import type { BoardLayout } from './types'
 
-export function getBoardLayout(mode: LayoutMode, spacing: SpacingPreset): BoardLayout {
-  const config = spacingConfig[spacing]
-  const frameWidth =
-    mode === 'horizontal-cards'
-      ? config.horizontalWidth
-      : mode === 'whiteboard-map'
-        ? config.whiteboardWidth
-        : config.verticalWidth
-
+export function getBoardLayout(): BoardLayout {
   return {
-    mode,
-    frameWidth,
-    frameGapY: config.frameGapY,
-    paddingX: config.paddingX,
-    paddingY: config.paddingY,
-    contentWidth: frameWidth - config.paddingX * 2,
-    titleGap: config.titleGap,
-    blockGap: config.blockGap,
-    smallGap: config.smallGap,
-    columnGap: config.columnGap,
-    minFrameHeight: config.minFrameHeight,
-    cameraZoom: config.cameraZoom,
+    ...verticalCardLayout,
+    contentWidth: verticalCardLayout.frameWidth - verticalCardLayout.paddingX * 2,
   }
 }
 

@@ -110,6 +110,7 @@ export function createGeoCard(args: {
   align?: 'start' | 'middle' | 'end' | 'start-legacy' | 'middle-legacy' | 'end-legacy'
   verticalAlign?: 'start' | 'middle' | 'end'
   boldLineCount?: number
+  richText?: TLRichText
   meta?: ShapeMetaInput
 }): ShapePartial {
   return {
@@ -133,7 +134,7 @@ export function createGeoCard(args: {
       font: args.font ?? 'sans',
       align: args.align ?? 'start',
       verticalAlign: args.verticalAlign ?? 'middle',
-      ...createTextProps(args.text, { boldLineCount: args.boldLineCount }),
+      ...(args.richText ? { richText: args.richText } : createTextProps(args.text, { boldLineCount: args.boldLineCount })),
     },
     meta: createGeneratedMeta(args.meta),
   }

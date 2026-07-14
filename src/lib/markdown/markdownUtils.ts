@@ -1,7 +1,32 @@
 import type { TeachDrawBlock, TeachDrawCodeBlock, TeachDrawImageBlock } from '@/types/teachdraw'
+import { scanMarkdownLines } from './fenceScanner'
 
 export function normalizeMarkdown(markdown: string): string {
-  return fixCommonMojibake(markdown).replace(/\r\n?/g, '\n')
+  const normalized = unwrapOuterMarkdownFence(markdown.replace(/\r\n?/g, '\n'))
+  const scan = scanMarkdownLines(normalized)
+
+  return scan.lines
+    .map((line) => (line.kind === 'prose' ? fixCommonMojibake(line.text) : line.text))
+    .join('\n')
+}
+
+function unwrapOuterMarkdownFence(markdown: string): string {
+  const lines = markdown.split('\n')
+  const first = lines.findIndex((line) => line.trim() !== '')
+  let last = lines.length - 1
+  while (last >= 0 && lines[last].trim() === '') last -= 1
+
+  if (first === -1 || last <= first) return markdown
+
+  const opening = lines[first].match(/^ {0,3}(`{4,}|~{4,})\s*(?:markdown|md)?\s*$/i)
+  if (!opening) return markdown
+
+  const marker = opening[1][0]
+  const minimumLength = opening[1].length
+  const closing = lines[last].match(/^ {0,3}(`{4,}|~{4,})\s*$/)
+  if (!closing || closing[1][0] !== marker || closing[1].length < minimumLength) return markdown
+
+  return [...lines.slice(0, first), ...lines.slice(first + 1, last), ...lines.slice(last + 1)].join('\n')
 }
 
 function fixCommonMojibake(input: string): string {
@@ -42,38 +67,8 @@ export function cleanBoardTitle(rawTitle: string): string {
 }
 
 export function cleanCodeContent(language: string | undefined, content: string): string {
-  const normalizedContent = trimBlankCodeLines(content)
-  const lang = language?.trim().toLowerCase()
-  if (!lang) return normalizedContent
-
-  const lines = normalizedContent.replace(/\r\n/g, '\n').split('\n')
-  const firstLine = lines[0]?.trim().toLowerCase()
-  const languageAliases: Record<string, string[]> = {
-    css: ['css'],
-    html: ['html'],
-    javascript: ['javascript', 'js'],
-    js: ['javascript', 'js'],
-    jsx: ['jsx'],
-    typescript: ['typescript', 'ts'],
-    ts: ['typescript', 'ts'],
-    tsx: ['tsx'],
-    python: ['python', 'py'],
-    py: ['python', 'py'],
-    json: ['json'],
-    bash: ['bash', 'shell', 'sh'],
-    shell: ['bash', 'shell', 'sh'],
-    powershell: ['powershell', 'ps1'],
-    cmd: ['cmd'],
-    sql: ['sql'],
-    text: ['text'],
-  }
-  const aliases = languageAliases[lang] ?? [lang]
-
-  if (firstLine && aliases.includes(firstLine)) {
-    return trimBlankCodeLines(lines.slice(1).join('\n'))
-  }
-
-  return normalizedContent
+  void language
+  return trimBlankCodeLines(content)
 }
 
 function trimBlankCodeLines(content: string): string {
@@ -118,19 +113,7 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
     return 'explanation'
   }
 
-  if (
-    h.includes('flow') ||
-    h.includes('mental model') ||
-    h.includes('setup flow') ||
-    h.includes('request flow') ||
-    h.includes('full stack flow') ||
-    h.includes('final concept flow') ||
-    h.includes('project view') ||
-    h.includes('mapping') ||
-    h.includes('condition') ||
-    h.includes('branch') ||
-    h.includes('if')
-  ) {
+  if (/\b(flow|mapping|condition|branch|if)\b/i.test(h) || /\b(mental model|project view)\b/i.test(h)) {
     return 'flow'
   }
 
@@ -156,7 +139,7 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
     return 'explanation'
   }
   if (h.includes('example') || h.includes('preview') || h.includes('use case')) return 'example'
-  if (h.includes('memory line') || h.includes('remember')) return 'memory'
+  if (h === 'memory' || h.includes('memory line') || h.includes('remember')) return 'memory'
   if (h.includes('important line') || h === 'important' || h.includes('important')) return 'important'
   if (h.includes('key point') || h.includes('core idea') || h.includes('core formula')) return 'keyPoint'
   if (h.includes('warning') || h.includes('error') || h.includes('common mistake') || h.includes('common error')) {
@@ -172,42 +155,37 @@ export function detectBlockKind(heading: string): TeachDrawBlock['kind'] {
 }
 
 export function extractCodeBlocks(raw: string): { textWithoutCode: string; codeBlocks: TeachDrawCodeBlock[] } {
-  const lines = raw.split('\n')
+  const scan = scanMarkdownLines(raw)
   const textLines: string[] = []
   const codeBlocks: TeachDrawCodeBlock[] = []
-  let inFence = false
   let language = ''
   let label: string | undefined
   let codeLines: string[] = []
 
-  for (const line of lines) {
-    const fence = line.match(/^```(.*)$/)
-
-    if (fence && !inFence) {
-      inFence = true
-      language = fence[1]?.trim()
+  for (const line of scan.lines) {
+    if (line.kind === 'fence-open') {
+      language = line.fence?.info.trim() ?? ''
       label = takeTrailingCodeLabel(textLines)
       codeLines = []
       continue
     }
 
-    if (line.trim() === '```' && inFence) {
+    if (line.kind === 'fence-close') {
       codeBlocks.push({ language: language || undefined, label, content: cleanCodeContent(language || undefined, codeLines.join('\n')) })
-      inFence = false
       language = ''
       label = undefined
       codeLines = []
       continue
     }
 
-    if (inFence) {
-      codeLines.push(line)
+    if (line.kind === 'fence-content') {
+      codeLines.push(line.text)
     } else {
-      textLines.push(line)
+      textLines.push(line.text)
     }
   }
 
-  if (inFence && codeLines.length > 0) {
+  if (scan.unclosedFence) {
     codeBlocks.push({ language: language || undefined, label, content: cleanCodeContent(language || undefined, codeLines.join('\n')) })
   }
 
@@ -365,7 +343,13 @@ export function parseBlock(id: string, heading: string, rawContent: string, kind
     numberedItems,
     codeBlocks,
     imageBlocks,
-    flowSteps: kind === 'flow' || kind === 'decision' ? parseFlowSteps(textWithoutImages, finalBullets) : [],
+    flowSteps:
+      kind === 'flow' || kind === 'decision'
+        ? parseFlowSteps(
+            [textWithoutImages, ...codeBlocks.map((codeBlock) => codeBlock.content)].filter(Boolean).join('\n'),
+            finalBullets
+          )
+        : [],
   }
 }
 
@@ -415,5 +399,3 @@ export function parseBoardTitle(markdownBeforeFrames: string): { rawTitle: strin
 
   return { rawTitle, boardTitle, boardSubtitle }
 }
-
-

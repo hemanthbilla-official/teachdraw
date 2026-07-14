@@ -1,5 +1,7 @@
 import type { TeachDrawBlock, TeachDrawDocument, TeachDrawFrame } from '@/types/teachdraw'
 import { getImageUrlIssue } from '@/lib/imageUrlRules'
+import { normalizeMarkdown } from './markdownUtils'
+import { scanMarkdownLines } from './fenceScanner'
 
 export type TeachDrawBoardAnalysis = {
   frameCount: number
@@ -37,8 +39,9 @@ export function analyzeTeachDrawDocument(document: TeachDrawDocument, markdown: 
 }
 
 function analyzeMarkdownFences(markdown: string): string[] {
-  const fenceCount = markdown.split('\n').filter((line) => line.trim().startsWith('```')).length
-  return fenceCount % 2 === 1 ? ['One fenced code block is not closed.'] : []
+  return scanMarkdownLines(normalizeMarkdown(markdown)).unclosedFence
+    ? ['One fenced code block is not closed.']
+    : []
 }
 
 function analyzeFrameStructure(frames: TeachDrawFrame[]): string[] {
@@ -56,9 +59,15 @@ function analyzeBlocks(frames: TeachDrawFrame[]): string[] {
   const warnings: string[] = []
   const blocks = frames.flatMap((frame) => frame.blocks)
   const hiddenScriptBlocks = blocks.filter((block) => trainerScriptHeadingRegex.test(block.heading.trim()))
-  const emptyCodeBlocks = blocks.filter((block) => block.codeBlocks.some((codeBlock) => !codeBlock.content.trim()))
+  const emptyCodeBlocks = blocks.filter(
+    (block) =>
+      block.codeBlocks.some((codeBlock) => !codeBlock.content.trim()) ||
+      ((block.kind === 'code' || block.kind === 'command') && block.codeBlocks.length === 0 && !block.text.trim() && block.bullets.length === 0)
+  )
   const imageUrlIssues = blocks.flatMap((block) => block.imageBlocks.map((imageBlock) => getImageUrlIssue(imageBlock.url)).filter(Boolean))
-  const unclearComparison = frames.some((frame) => frame.blocks.some((block) => block.kind === 'compare' && !hasComparisonPattern(block)))
+  const unclearComparison = frames.some((frame) =>
+    frame.blocks.some((block) => block.kind === 'compare' && !hasComparisonPattern(frame, block))
+  )
 
   if (hiddenScriptBlocks.length > 0) {
     warnings.push('Trainer-script headings will be skipped on the board.')
@@ -84,6 +93,10 @@ function analyzeBlocks(frames: TeachDrawFrame[]): string[] {
     warnings.push('At least one image URL does not look like a direct image file. Prefer URLs ending in .png, .jpg, .webp, .svg, or a known image CDN URL.')
   }
 
+  if (imageUrlIssues.includes('insecure-http')) {
+    warnings.push('At least one image uses HTTP and should be opened over HTTPS to avoid mixed-content blocking.')
+  }
+
   if (unclearComparison) {
     warnings.push('A Compare block needs an `A vs B` title or standalone `vs` lines.')
   }
@@ -91,7 +104,14 @@ function analyzeBlocks(frames: TeachDrawFrame[]): string[] {
   return warnings
 }
 
-function hasComparisonPattern(block: TeachDrawBlock): boolean {
+function hasComparisonPattern(frame: TeachDrawFrame, block: TeachDrawBlock): boolean {
   const source = [block.heading, block.text, ...block.bullets, ...block.numberedItems].join('\n')
-  return /\bvs\b|\bversus\b/i.test(source)
+  if (/\bvs\b|\bversus\b/i.test(source)) return true
+  if (frame.layoutHint !== 'comparison') return false
+
+  const blockIndex = frame.blocks.indexOf(block)
+  const eligibleFollowingBlocks = frame.blocks
+    .slice(blockIndex + 1)
+    .filter((candidate) => candidate.kind !== 'flow' && candidate.kind !== 'decision' && candidate.kind !== 'compare' && candidate.imageBlocks.length === 0)
+  return eligibleFollowingBlocks.length >= 2
 }

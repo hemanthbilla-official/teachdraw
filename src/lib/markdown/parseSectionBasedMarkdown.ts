@@ -1,4 +1,5 @@
 import type { TeachDrawBlock, TeachDrawDocument, TeachDrawFrame } from '@/types/teachdraw'
+import { scanMarkdownLines } from './fenceScanner'
 import { detectBlockKind, normalizeMarkdown, parseBlock, slugId, stripMarkdownMarkers } from './markdownUtils'
 
 const sectionPrefixRegex =
@@ -13,8 +14,8 @@ export function parseSectionBasedMarkdown(markdown: string): TeachDrawDocument {
       .find(Boolean)
       ?.trim() || 'Untitled Lesson'
 
-  const sectionIndexes = lines
-    .map((line, index) => ({ line, index, match: line.match(/^##\s+(.+)$/) }))
+  const sectionIndexes = scanMarkdownLines(normalized).lines
+    .map((line) => ({ line: line.text, index: line.index, match: line.kind === 'prose' ? line.text.match(/^##\s+(.+)$/) : null }))
     .filter((entry) => entry.match)
 
   let frames: TeachDrawFrame[]
@@ -30,28 +31,43 @@ export function parseSectionBasedMarkdown(markdown: string): TeachDrawDocument {
       },
     ]
   } else {
-    frames = sectionIndexes.map((entry, index) => {
+    frames = []
+    const firstSectionIndex = sectionIndexes[0].index
+    const preamble = lines
+      .slice(0, firstSectionIndex)
+      .filter((line) => !/^#\s+/.test(line) && line.trim() !== '---')
+      .join('\n')
+      .trim()
+
+    if (preamble) {
+      frames.push({
+        id: 'frame-1-overview',
+        frameNumber: 1,
+        frameTitle: 'Overview',
+        blocks: [parseBlock('frame-1-block-1-content', 'Content', preamble, 'normal')],
+      })
+    }
+
+    sectionIndexes.forEach((entry, index) => {
       const originalHeading = entry.match?.[1] ?? `Section ${index + 1}`
       const nextSectionIndex = sectionIndexes[index + 1]?.index ?? lines.length
-      const rawContent = lines
-        .slice(entry.index + 1, nextSectionIndex)
-        .filter((line) => line.trim() !== '---')
-        .join('\n')
+      const rawContent = cleanSectionContent(lines.slice(entry.index + 1, nextSectionIndex))
       const parsedHeading = parseSectionHeading(originalHeading)
 
-      return {
-        id: slugId('frame', index, parsedHeading.frameTitle),
-        frameNumber: index + 1,
+      const frameIndex = frames.length
+      frames.push({
+        id: slugId('frame', frameIndex, parsedHeading.frameTitle),
+        frameNumber: frameIndex + 1,
         frameTitle: parsedHeading.frameTitle,
         blocks: [
           parseBlock(
-            slugId(`frame-${index + 1}-block`, 0, parsedHeading.blockHeading),
+            slugId(`frame-${frameIndex + 1}-block`, 0, parsedHeading.blockHeading),
             parsedHeading.blockHeading,
             rawContent,
             parsedHeading.kind
           ),
         ],
-      }
+      })
     })
   }
 
@@ -61,6 +77,13 @@ export function parseSectionBasedMarkdown(markdown: string): TeachDrawDocument {
     boardTitle: stripMarkdownMarkers(rawTitle),
     frames,
   }
+}
+
+function cleanSectionContent(lines: string[]): string {
+  return scanMarkdownLines(lines.join('\n')).lines
+    .filter((line) => line.kind !== 'prose' || line.text.trim() !== '---')
+    .map((line) => line.text)
+    .join('\n')
 }
 
 function parseSectionHeading(heading: string): {

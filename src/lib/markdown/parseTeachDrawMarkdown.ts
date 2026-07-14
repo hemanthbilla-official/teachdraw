@@ -1,5 +1,6 @@
 import type { TeachDrawDocument } from '@/types/teachdraw'
 import { normalizeMarkdown } from './markdownUtils'
+import { scanMarkdownLines } from './fenceScanner'
 import { parseFrameBasedMarkdown } from './parseFrameBasedMarkdown'
 import { parseSectionBasedMarkdown } from './parseSectionBasedMarkdown'
 
@@ -17,7 +18,11 @@ export function parseTeachDrawMarkdown(markdown: string): TeachDrawDocument {
     }
   }
 
-  return frameHeadingRegex.test(normalized)
+  const hasFrameHeading = scanMarkdownLines(normalized).lines.some(
+    (line) => line.kind === 'prose' && frameHeadingRegex.test(line.text)
+  )
+
+  return hasFrameHeading
     ? parseFrameBasedMarkdown(normalized)
     : parseSectionBasedMarkdown(normalized)
 }

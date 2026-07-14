@@ -1,29 +1,15 @@
 import type { TLShape } from 'tldraw'
-import type { TeachDrawBlock, TeachDrawFrame, TeachDrawLayoutHint } from '@/types/teachdraw'
+import type { TeachDrawBlock, TeachDrawFrame } from '@/types/teachdraw'
 import { createGeoCard, createTextShape, type AssetPartial, type ShapePartial } from '../shapeHelpers'
-import {
-  getRenderableBlocks,
-  isCalloutBlock,
-  isCodeSupportAfterBlock,
-  isCodeVisualBlock,
-  isComparisonBlock,
-  isCorrectBlock,
-  isFlowLikeBlock,
-  isMistakeBlock,
-  pickContentLayout,
-} from './classification'
+import { getRenderableBlocks, isCorrectBlock, isMistakeBlock } from './classification'
 import { renderAnyBlock } from './blockRenderers'
-import { renderCodeBlockStack } from './codeCardRenderers'
-import { buildGroupedComparisonBlock, mergeGroupedComparisonBlocks } from './comparisonGrouping'
-import { renderComparisonBlock } from './comparisonRenderer'
-import { getVisibleFrameTitle, hasNonCodeText } from './content'
-import { renderFlowBlock } from './flowRenderer'
+import { mergeGroupedComparisonBlocks } from './comparisonGrouping'
+import { getVisibleFrameTitle } from './content'
 import type { ImageInfoMap } from './imageRenderer'
 import { estimateWrappedLines } from './measurements'
-import { renderMistakeFixPanel } from './mistakeFixRenderer'
+import { renderMistakeFixPair } from './mistakeFixRenderer'
 import { pickFrameColor } from './palette'
-import { renderCalloutCard, renderTextCard } from './textCardRenderers'
-import type { BoardLayout, DrawColor, GeneratedMeta, GenerateTeachDrawOptions, HorizontalLanes } from './types'
+import type { BoardLayout, DrawColor, GeneratedMeta, GenerateTeachDrawOptions } from './types'
 
 export function renderFrameContent(
   shapes: ShapePartial[],
@@ -44,10 +30,20 @@ export function renderFrameContent(
 
   if (blocks.length === 0) return contentY
 
-  const renderedHeight =
-    layout.mode === 'horizontal-cards'
-      ? renderHorizontalFrame(shapes, assets, blocks, parentId, contentX, contentY, layout.contentWidth, meta, options, layout, imageInfo, frame.layoutHint)
-      : renderVerticalFrame(shapes, assets, blocks, parentId, contentX, contentY, layout.contentWidth, meta, options, layout, imageInfo)
+  const renderedHeight = renderVerticalFrame(
+    shapes,
+    assets,
+    blocks,
+    parentId,
+    contentX,
+    contentY,
+    layout.contentWidth,
+    meta,
+    options,
+    layout,
+    imageInfo,
+    frame.layoutHint === 'comparison'
+  )
 
   return contentY + renderedHeight
 }
@@ -91,41 +87,6 @@ function renderFrameHeader(
   return Math.max(layout.titleGap, titleTextHeight + 30)
 }
 
-function renderHorizontalFrame(
-  shapes: ShapePartial[],
-  assets: AssetPartial[],
-  blocks: TeachDrawBlock[],
-  parentId: TLShape['id'],
-  x: number,
-  y: number,
-  w: number,
-  frameMeta: GeneratedMeta,
-  options: GenerateTeachDrawOptions,
-  layout: BoardLayout,
-  imageInfo: ImageInfoMap,
-  layoutHint?: TeachDrawLayoutHint
-): number {
-  const frameLayout = pickContentLayout(blocks, layoutHint)
-
-  if (frameLayout === 'mistake-fix') {
-    return renderHorizontalMistakeFix(shapes, assets, blocks, parentId, x, y, w, frameMeta, options, layout, imageInfo)
-  }
-
-  if (frameLayout === 'comparison') {
-    return renderHorizontalComparison(shapes, assets, blocks, parentId, x, y, w, frameMeta, options, layout, imageInfo)
-  }
-
-  if (frameLayout === 'flow-focus') {
-    return renderHorizontalFlow(shapes, assets, blocks, parentId, x, y, w, frameMeta, options, layout, imageInfo)
-  }
-
-  if (frameLayout === 'code-focus') {
-    return renderHorizontalCodeFocus(shapes, assets, blocks, parentId, x, y, w, frameMeta, options, layout, imageInfo)
-  }
-
-  return renderHorizontalConcept(shapes, assets, blocks, parentId, x, y, w, frameMeta, options, layout, imageInfo)
-}
-
 function renderVerticalFrame(
   shapes: ShapePartial[],
   assets: AssetPartial[],
@@ -137,279 +98,46 @@ function renderVerticalFrame(
   frameMeta: GeneratedMeta,
   options: GenerateTeachDrawOptions,
   layout: BoardLayout,
-  imageInfo: ImageInfoMap
+  imageInfo: ImageInfoMap,
+  allowImplicitComparison: boolean
 ): number {
   let cursorY = y
-  const renderBlocks = mergeGroupedComparisonBlocks(blocks)
+  const renderBlocks = mergeGroupedComparisonBlocks(blocks, { allowImplicitColumns: allowImplicitComparison })
 
-  renderBlocks.forEach((block) => {
+  const used = new Set<number>()
+  renderBlocks.forEach((block, index) => {
+    if (used.has(index)) return
+
+    if (isMistakeBlock(block) || isCorrectBlock(block)) {
+      const counterpartIndex = renderBlocks.findIndex((candidate, candidateIndex) => {
+        if (candidateIndex <= index || used.has(candidateIndex)) return false
+        return isMistakeBlock(block) ? isCorrectBlock(candidate) : isMistakeBlock(candidate)
+      })
+
+      if (counterpartIndex !== -1) {
+        const counterpart = renderBlocks[counterpartIndex]
+        const mistake = isMistakeBlock(block) ? block : counterpart
+        const correct = isCorrectBlock(block) ? block : counterpart
+        const height = renderMistakeFixPair(
+          shapes,
+          mistake,
+          correct,
+          parentId,
+          x,
+          cursorY,
+          w,
+          frameMeta,
+          options.flowOrientation
+        )
+        used.add(counterpartIndex)
+        cursorY += height + layout.blockGap
+        return
+      }
+    }
+
     const height = renderAnyBlock(shapes, assets, block, parentId, x, cursorY, w, frameMeta, options, layout, imageInfo)
     if (height > 0) cursorY += height + layout.blockGap
   })
 
   return Math.max(0, cursorY - y - layout.blockGap)
-}
-
-function renderHorizontalCodeFocus(
-  shapes: ShapePartial[],
-  assets: AssetPartial[],
-  blocks: TeachDrawBlock[],
-  parentId: TLShape['id'],
-  x: number,
-  y: number,
-  w: number,
-  frameMeta: GeneratedMeta,
-  options: GenerateTeachDrawOptions,
-  layout: BoardLayout,
-  imageInfo: ImageInfoMap
-): number {
-  const lanes = getHorizontalLanes(x, w, layout)
-  const codeBlocks = blocks.filter(isCodeVisualBlock)
-  const used = new Set<TeachDrawBlock>()
-  let cursorY = y
-
-  codeBlocks.forEach((codeBlock) => {
-    const relatedBlocks = collectRelatedSupportBlocks(blocks, codeBlock, codeBlocks, used)
-    const supportBlocks = relatedBlocks.filter((block) => !isCalloutBlock(block))
-    const calloutBlocks = relatedBlocks.filter(isCalloutBlock)
-    const supportHeight = renderSupportForCode(shapes, codeBlock, supportBlocks, calloutBlocks, parentId, lanes.supportX, cursorY, lanes.supportW, frameMeta, layout)
-    const showCodeHeading = supportHeight === 0
-    const codeHeight = renderCodeBlockStack(shapes, codeBlock, parentId, lanes.visualX, cursorY, lanes.visualW, frameMeta, {
-      showHeading: showCodeHeading,
-    })
-    const rowHeight = Math.max(supportHeight, codeHeight)
-
-    used.add(codeBlock)
-    relatedBlocks.forEach((block) => used.add(block))
-    cursorY += rowHeight + layout.blockGap
-  })
-
-  const remaining = blocks.filter((block) => !used.has(block))
-  if (remaining.length > 0) {
-    cursorY += renderHorizontalMixedGrid(shapes, assets, remaining, parentId, x, cursorY, w, frameMeta, options, layout, imageInfo)
-  } else {
-    cursorY -= layout.blockGap
-  }
-
-  return Math.max(0, cursorY - y)
-}
-
-function renderSupportForCode(
-  shapes: ShapePartial[],
-  codeBlock: TeachDrawBlock,
-  supportBlocks: TeachDrawBlock[],
-  calloutBlocks: TeachDrawBlock[],
-  parentId: TLShape['id'],
-  x: number,
-  y: number,
-  w: number,
-  frameMeta: GeneratedMeta,
-  layout: BoardLayout
-): number {
-  let cursorY = y
-
-  if (hasNonCodeText(codeBlock)) {
-    const height = renderTextCard(shapes, codeBlock, parentId, x, cursorY, w, frameMeta, { colorOverride: 'blue' })
-    cursorY += height + layout.smallGap
-  }
-
-  supportBlocks.forEach((block) => {
-    const height = renderTextCard(shapes, block, parentId, x, cursorY, w, frameMeta)
-    if (height > 0) cursorY += height + layout.smallGap
-  })
-
-  calloutBlocks.forEach((block) => {
-    const height = renderCalloutCard(shapes, block, parentId, x, cursorY, w, frameMeta)
-    if (height > 0) cursorY += height + layout.smallGap
-  })
-
-  return Math.max(0, cursorY - y - layout.smallGap)
-}
-
-function renderHorizontalFlow(
-  shapes: ShapePartial[],
-  assets: AssetPartial[],
-  blocks: TeachDrawBlock[],
-  parentId: TLShape['id'],
-  x: number,
-  y: number,
-  w: number,
-  frameMeta: GeneratedMeta,
-  options: GenerateTeachDrawOptions,
-  layout: BoardLayout,
-  imageInfo: ImageInfoMap
-): number {
-  const flowBlocks = blocks.filter(isFlowLikeBlock)
-  const remaining = blocks.filter((block) => !flowBlocks.includes(block))
-  let cursorY = y
-
-  flowBlocks.forEach((block) => {
-    const height = renderFlowBlock(shapes, block, parentId, x, cursorY, w, frameMeta, options.flowOrientation)
-    cursorY += height + layout.blockGap
-  })
-
-  if (remaining.length > 0) {
-    cursorY += renderHorizontalMixedGrid(shapes, assets, remaining, parentId, x, cursorY, w, frameMeta, options, layout, imageInfo)
-  } else {
-    cursorY -= layout.blockGap
-  }
-
-  return Math.max(0, cursorY - y)
-}
-
-function renderHorizontalComparison(
-  shapes: ShapePartial[],
-  assets: AssetPartial[],
-  blocks: TeachDrawBlock[],
-  parentId: TLShape['id'],
-  x: number,
-  y: number,
-  w: number,
-  frameMeta: GeneratedMeta,
-  options: GenerateTeachDrawOptions,
-  layout: BoardLayout,
-  imageInfo: ImageInfoMap
-): number {
-  const compareBlocks = blocks.filter(isComparisonBlock)
-  const remaining = blocks.filter((block) => !compareBlocks.includes(block))
-  const used = new Set<TeachDrawBlock>(compareBlocks)
-  let cursorY = y
-
-  compareBlocks.forEach((block) => {
-    const groupedComparison = buildGroupedComparisonBlock(block, remaining)
-    const height = renderComparisonBlock(shapes, groupedComparison?.block ?? block, parentId, x, cursorY, w, frameMeta)
-    groupedComparison?.usedBlocks.forEach((usedBlock) => used.add(usedBlock))
-    cursorY += height + layout.blockGap
-  })
-
-  const unusedRemaining = remaining.filter((block) => !used.has(block))
-  if (unusedRemaining.length > 0) {
-    cursorY += renderHorizontalMixedGrid(shapes, assets, unusedRemaining, parentId, x, cursorY, w, frameMeta, options, layout, imageInfo)
-  } else {
-    cursorY -= layout.blockGap
-  }
-
-  return Math.max(0, cursorY - y)
-}
-
-function renderHorizontalMistakeFix(
-  shapes: ShapePartial[],
-  assets: AssetPartial[],
-  blocks: TeachDrawBlock[],
-  parentId: TLShape['id'],
-  x: number,
-  y: number,
-  w: number,
-  frameMeta: GeneratedMeta,
-  options: GenerateTeachDrawOptions,
-  layout: BoardLayout,
-  imageInfo: ImageInfoMap
-): number {
-  const mistakeBlocks = blocks.filter(isMistakeBlock)
-  const correctBlocks = blocks.filter(isCorrectBlock)
-  const used = new Set([...mistakeBlocks, ...correctBlocks])
-  const gap = layout.columnGap
-  const panelW = Math.floor((w - gap) / 2)
-  let cursorY = y
-  const pairCount = Math.max(mistakeBlocks.length, correctBlocks.length)
-
-  for (let index = 0; index < pairCount; index += 1) {
-    const mistake = mistakeBlocks[index]
-    const correct = correctBlocks[index]
-    const mistakeHeight = mistake
-      ? renderMistakeFixPanel(shapes, mistake, parentId, x, cursorY, panelW, frameMeta, 'Mistake', 'red', options.flowOrientation)
-      : 0
-    const correctHeight = correct
-      ? renderMistakeFixPanel(shapes, correct, parentId, x + panelW + gap, cursorY, panelW, frameMeta, 'Correct', 'green', options.flowOrientation)
-      : 0
-
-    cursorY += Math.max(mistakeHeight, correctHeight) + layout.blockGap
-  }
-
-  const remaining = blocks.filter((block) => !used.has(block))
-  if (remaining.length > 0) {
-    cursorY += renderHorizontalMixedGrid(shapes, assets, remaining, parentId, x, cursorY, w, frameMeta, options, layout, imageInfo)
-  } else {
-    cursorY -= layout.blockGap
-  }
-
-  return Math.max(0, cursorY - y)
-}
-
-function renderHorizontalConcept(
-  shapes: ShapePartial[],
-  assets: AssetPartial[],
-  blocks: TeachDrawBlock[],
-  parentId: TLShape['id'],
-  x: number,
-  y: number,
-  w: number,
-  frameMeta: GeneratedMeta,
-  options: GenerateTeachDrawOptions,
-  layout: BoardLayout,
-  imageInfo: ImageInfoMap
-): number {
-  return renderHorizontalMixedGrid(shapes, assets, blocks, parentId, x, y, w, frameMeta, options, layout, imageInfo)
-}
-
-function renderHorizontalMixedGrid(
-  shapes: ShapePartial[],
-  assets: AssetPartial[],
-  blocks: TeachDrawBlock[],
-  parentId: TLShape['id'],
-  x: number,
-  y: number,
-  w: number,
-  frameMeta: GeneratedMeta,
-  options: GenerateTeachDrawOptions,
-  layout: BoardLayout,
-  imageInfo: ImageInfoMap
-): number {
-  let cursorY = y
-
-  for (let index = 0; index < blocks.length; index += 2) {
-    const leftBlock = blocks[index]
-    const rightBlock = blocks[index + 1]
-    const gap = layout.columnGap
-    const colW = Math.floor((w - gap) / 2)
-    const leftH = leftBlock ? renderAnyBlock(shapes, assets, leftBlock, parentId, x, cursorY, colW, frameMeta, options, layout, imageInfo) : 0
-    const rightH = rightBlock
-      ? renderAnyBlock(shapes, assets, rightBlock, parentId, x + colW + gap, cursorY, colW, frameMeta, options, layout, imageInfo)
-      : 0
-
-    cursorY += Math.max(leftH, rightH) + layout.blockGap
-  }
-
-  return Math.max(0, cursorY - y - layout.blockGap)
-}
-
-function getHorizontalLanes(x: number, w: number, layout: BoardLayout): HorizontalLanes {
-  const gap = layout.columnGap
-  const supportW = Math.round((w - gap) * 0.42)
-  const visualW = w - supportW - gap
-
-  return {
-    supportX: x,
-    supportW,
-    visualX: x + supportW + gap,
-    visualW,
-  }
-}
-
-function collectRelatedSupportBlocks(
-  blocks: TeachDrawBlock[],
-  codeBlock: TeachDrawBlock,
-  codeBlocks: TeachDrawBlock[],
-  used: Set<TeachDrawBlock>
-): TeachDrawBlock[] {
-  const codeIndex = blocks.indexOf(codeBlock)
-  const previousCodeIndexes = codeBlocks.map((block) => blocks.indexOf(block)).filter((index) => index < codeIndex)
-  const previousCodeIndex = previousCodeIndexes.length > 0 ? Math.max(...previousCodeIndexes) : -1
-  const nextCodeIndex = codeBlocks.map((block) => blocks.indexOf(block)).find((index) => index > codeIndex) ?? blocks.length
-  const before = blocks.slice(previousCodeIndex + 1, codeIndex).filter((block) => !used.has(block) && !isCodeVisualBlock(block))
-  const after = blocks
-    .slice(codeIndex + 1, nextCodeIndex)
-    .filter((block) => !used.has(block) && !isCodeVisualBlock(block) && isCodeSupportAfterBlock(block))
-
-  return [...before, ...after]
 }

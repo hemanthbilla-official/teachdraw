@@ -10,48 +10,21 @@ There is no AI integration inside the app, no API key handling, no backend gener
 
 - Markdown textarea
 - Parser mode and board health indicator
-- Canvas Style dropdown
-  - Vertical Cards
-  - Horizontal Cards
-  - Whiteboard Map
-- Spacing dropdown
-  - Comfortable
-  - Compact
-  - Extra Compact
-  - Extreme Compact
-- Flow dropdown
+- Fixed, stable Vertical Cards layout
+- Automatic flow direction by default, with Vertical and Horizontal overrides
 - Generate Board button
 - Clear Board button
+- Download Board button
 
-Vertical Cards is the default layout. Horizontal Cards is available for wider side-by-side teaching notes. Whiteboard Map is available for live classroom explanation and concept relationships.
+The workspace uses one predictable classroom layout: Vertical Cards. Spacing is tuned and fixed by the renderer; only flow direction is configurable.
 
-## Board Styles
+## Board Layout
 
 ### Vertical Cards
 
 Frames are stacked vertically. Blocks render one after another with content-based height.
 
-Use this when you want the cleanest screen-note format.
-
-### Horizontal Cards
-
-Frames are stacked vertically, but each frame uses more width.
-
-- Code-heavy frames put explanation and notes on the left, code on the right.
-- Flow frames use wide diagrams.
-- Comparison frames render two or three balanced columns.
-- Mistake/fix frames render Mistake and Correct side by side.
-- Callouts use semantic colors and content-based height.
-
-### Whiteboard Map
-
-Frames are still stacked vertically, but each frame renders like a clean classroom whiteboard section.
-
-- Explanation notes render as loose whiteboard text.
-- Code, flow, comparison, and mistake/fix content stay structured.
-- Important, memory, warning, and practice notes render as light callouts.
-- Arrows connect related lanes only when useful.
-- Content is deterministic, not randomly scattered.
+Comparison frames render as unified two- or three-column panels with title bands, source labels, explanatory text, and code kept inside the relevant column. Mistake/fix, callout, image, and code blocks use the same fixed vertical rhythm.
 
 ## Markdown Format
 
@@ -211,7 +184,7 @@ src/
   components/
     TeachDrawApp.tsx
     MarkdownEditorPanel.tsx
-    GenerationOptions.tsx
+    FlowOptions.tsx
     ParserModeBadge.tsx
     TldrawCanvasPanel.tsx
   lib/
@@ -243,7 +216,6 @@ src/
         palette.ts
         textCardRenderers.ts
         types.ts
-        whiteboardRenderer.ts
       layoutHelpers.ts
       shapeHelpers.ts
   types/
